@@ -1,7 +1,7 @@
 #include <iostream>
 #include "dictionary.h"
 #include "iniparser.h"   
-
+//#include <map>
 using namespace std;
 
 typedef struct _globalConfig{

@@ -87,7 +87,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 add_definitions(${OpenCV_DEFINITIONS})
 
 
-file(GLOB Source_Files "${PROJECT_SOURCE_DIR}/src/*.cpp" "${PROJECT_SOURCE_DIR}/src/tracker/*.cpp")
+file(GLOB Source_Files "${PROJECT_SOURCE_DIR}/src/*.cpp" "${PROJECT_SOURCE_DIR}/src/tracker/*.cpp" "${PROJECT_SOURCE_DIR}/src/image/*.c")
 
 set(ALL_FILES ${Source_Files})
 
@@ -96,4 +96,31 @@ include_directories(${PROJECT_SOURCE_DIR}/inc)
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 
 set(TARGET_BINARY mot-app)
+
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+   #add_compile_definition(${PROJECT_NAME} PUBLIC "$<$<CONFIG:Debug>:__DEBUG__>")  #since 3.12 version
+   add_compile_options(
+                       "-Wall" "-Wpedantic" "-Wextra" "-fexceptions"
+                       "$<$<CONFIG:DEBUG>:-O0;-g3;-ggdb>"
+    )
+    message("CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
+    #add_custom_target(build_and_debug ALL DEPENDS ${TARGET_BINARY})
+    #add_custom_target("deploy")
+endif()
+
+add_custom_target(deploy ALL DEPENDS ${TARGET_BINARY})
+set(BOARD_IP  10.42.0.214)
+set(PORT_NO 5050)
+
+add_custom_command(
+    TARGET deploy POST_BUILD
+    #COMMAND scp ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_BINARY} root@${BOARD_IP}:/usr/bin
+    COMMENT "Copy files..."
+    COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/${TARGET_BINARY} "/nfs/rootfs/config/custom/mot-app"
+    COMMAND sshpass -p "password" ssh -vv -y -f -L${PORT_NO}:localhost:${PORT_NO} root@${BOARD_IP} 'gdbserver :${PORT_NO} /config/custom/mot-app/${TARGET_BINARY} ./config.ini'
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    VERBATIM
+    USES_TERMINAL
+    )
+
 
