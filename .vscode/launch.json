@@ -18,7 +18,7 @@
             "targetArchitecture": "arm",
             "MIMode": "gdb",
             "filterStdout":false,
-            "miDebuggerPath": "/mnt/Ubuntu_Data/camera/gcc-sigmastar-9.1.0-2019.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gdb",
+            "miDebuggerPath": "/mnt/Ubuntu_data/video/camera/gcc-sigmastar-9.1.0-2019.11-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gdb",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
@@ -27,5 +27,5 @@
                 }
             ]
         }
-    ] 
+    ]
 }
