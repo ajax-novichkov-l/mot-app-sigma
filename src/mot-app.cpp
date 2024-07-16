@@ -1,7 +1,7 @@
 #include <iostream>
 #include "dictionary.h"
 #include "iniparser.h"   
-//#include <map>
+#include "BYTETracker.h"
 
 #include "image/image_assist.cpp"
 
@@ -58,11 +58,10 @@ int main(int argc,char *argv[]){
     MI_IPU_TensorVector_t OutputTensorVector;
     MI_IPU_OfflineModelStaticInfo_t OfflineModelInfo;
 
-    BYTETracker tracker(6, 30);//fps
+    BYTETracker tracker(1);//fps = 6
     int num_frames = 0;
     int total_ms = 1;
-
-
+    
     std::vector<string> class_list;
     ifstream ifs(programGonfig.path_labels.c_str());
     string line;
@@ -209,7 +208,7 @@ for (int idx = 0; idx < images.size(); idx++) {
             gettimeofday(&tv_start,NULL);
         #endif
 
-        cout<<"IPU invoke :"<<endl;
+        //cout<<"IPU invoke :"<<endl;
         int times = 1;
         for (int i=0;i<times;i++ )
         {
@@ -235,8 +234,6 @@ for (int idx = 0; idx < images.size(); idx++) {
         float *outDATA = (float*)OutputTensorVector.astArrayTensors[0].ptTensorData[0];
         float fScalar = (float)desc.astMI_OutputTensorDescs[0].fScalar;
 
-        vector<STrack> output_stracks = tracker.update(objects);
-
         //cout<<"New array size :" << s32ClassCount << std::endl;
         /*for (int i = 0; i < s32ClassCount; i++)
         {
@@ -259,6 +256,8 @@ for (int idx = 0; idx < images.size(); idx++) {
         //cout<<"checkData \n"<<endl;
 
         cv::Mat img = checkData(frame, outDATA, class_list, fScalar, strOutImageName, desc.astMI_OutputTensorDescs[0].u32InnerMostStride/getTypeSYze(desc.astMI_OutputTensorDescs[0].eElmFormat), &programGonfig);
+        vector<STrack> output_stracks = tracker.update(objects); 
+        trackToImage(img, output_stracks, class_list, tracker);
 
         if(programGonfig.out_boxes){
             cv::imwrite(strOutImageName.c_str(), img);

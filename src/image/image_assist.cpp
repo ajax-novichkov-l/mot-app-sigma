@@ -157,6 +157,8 @@ cv::Scalar BLUE = cv::Scalar(255, 178, 50);
 cv::Scalar YELLOW = cv::Scalar(0, 255, 255);
 cv::Scalar RED = cv::Scalar(0,0,255);
 
+std::vector<Object> objects;
+
 void DIVPCreate(MI_PHY& phySrcBufAddr, MI_PHY& phyDstBufAddr, void* &pVirSrcBufAddr, void* &pVirDstBufAddr) {
     MI_S32 ret;
     ret = MI_SYS_MMA_Alloc(NULL, SRC_IMAGE_SIZE, &phySrcBufAddr);
@@ -293,42 +295,20 @@ float OpenCV_Image(PreProcessedData* pstPreProcessedData){
 
 
     if (img.size() != inputSize) {
-        std::cout << "input size should be :" << pstPreProcessedData->iResizeC << " " << pstPreProcessedData->iResizeH << " " << pstPreProcessedData->iResizeW << std::endl;
-		std::cout << "now input size is :" << img.channels() << " " << img.rows<<" " << img.cols << std::endl;
-		std::cout << "img is going to resize!" << std::endl;
+        //std::cout << "input size should be :" << pstPreProcessedData->iResizeC << " " << pstPreProcessedData->iResizeH << " " << pstPreProcessedData->iResizeW << std::endl;
+		//std::cout << "now input size is :" << img.channels() << " " << img.rows<<" " << img.cols << std::endl;
+		//std::cout << "img is going to resize!" << std::endl;
 
         ratio = std::min((float)inputSize.width / (float)img.size().width, (float)inputSize.height / (float)img.size().height);
         cv::Size outputSize = cv::Size(int(round(img.size().width * ratio)), int(round(img.size().height * ratio)));
-        std::cout << "outputSize w " << outputSize.width <<std::endl;
-        std::cout << "outputSize h " << outputSize.height <<std::endl;
+        //std::cout << "outputSize w " << outputSize.width <<std::endl;
+        //std::cout << "outputSize h " << outputSize.height <<std::endl;
         cv::resize(img, sample_resized, outputSize, 0, 0, cv::INTER_LINEAR);
-
-        /*strOutImageName = "resized_"+strOutImageName;
-        cv::imwrite(strOutImageName.c_str(), sample_resized);*/
-
         cv::Mat image(pstPreProcessedData->iResizeH, pstPreProcessedData->iResizeW, CV_8UC3, cv::Scalar(0, 0, 0));
-        /*strOutImageName = "black_"+strOutImageName;
-        cv::imwrite(strOutImageName.c_str(), image);*/
-
-        /*cv::Mat insetImage(image, cv::Rect(0, 0, sample_resized.cols, sample_resized.rows));
-        sample_resized.copyTo(insetImage);
-
-        strOutImageName = "insert_"+strOutImageName;
-        cv::imwrite(strOutImageName.c_str(), insetImage);*/
 
         sample_resized.copyTo(image(cv::Rect(0,0,sample_resized.cols, sample_resized.rows)));
 
-        /*strOutImageName = "insert_"+strOutImageName;
-        cv::imwrite(strOutImageName.c_str(), image);*/
-        /*color = (114, 114, 114)
-        dw, dh = new_shape[1] - new_unpad[0], new_shape[0] - new_unpad[1]  # wh padding
-        dw /= 2
-        dh /= 2
-        top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
-        left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
-        im = cv2.copyMakeBorder(im, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)  # add border*/
         sample_resized = image;
-
 
     }
     else {
@@ -522,7 +502,7 @@ void draw_label(cv::Mat& input_image, std::string label, int left, int top, int 
     int baseLine;
     cv::Size label_size = cv::getTextSize(label, FONT_FACE, 1, THICKNESS, &baseLine);
 
-    printf("label_size.w -%d, label_size.h - %d \n", label_size.width, label_size.height);
+    //printf("label_size.w -%d, label_size.h - %d \n", label_size.width, label_size.height);
 
     top = max(top, label_size.height);
     // Top left corner.
@@ -533,20 +513,20 @@ void draw_label(cv::Mat& input_image, std::string label, int left, int top, int 
     if(scale<0.3)
         scale = 0.3;
 
-    std::cout << "label scale - " << scale << std::endl;
+    //std::cout << "label scale - " << scale << std::endl;
 
     cv::Point tlc = cv::Point(left, top);
 
-    printf("tlc.x -%d, tlc.y - %d \n", tlc.x, tlc.y);
+    //printf("tlc.x -%d, tlc.y - %d \n", tlc.x, tlc.y);
 
     cv::Point brc = cv::Point(left + (int)(label_size.width*scale), top + (int)(label_size.height*scale) + baseLine*scale);
 
-    printf("brc.x -%d, brc.y - %d \n", brc.x, brc.y);
+    //printf("brc.x -%d, brc.y - %d \n", brc.x, brc.y);
 
-    printf("rectangle start\n");
+    //printf("rectangle start\n");
     cv::rectangle(input_image, tlc, brc, BLACK, cv::FILLED);
-    printf("rectangle end\n");
-    printf("putText\n");
+    //printf("rectangle end\n");
+    ///("putText\n");
     cv::putText(input_image, label, cv::Point(left, top + (int)(label_size.height*scale)), FONT_FACE, scale, getColor(prc), THICKNESS);
 }
 
@@ -554,17 +534,14 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
     bool isFile = false;
     std::ofstream file;
 
-
-
-
     float addRatio = std::min((float)conf->edgeSizeW / (float)inputImg.size().width, (float)conf->edgeSizeH / (float)inputImg.size().height);
     //float addRatioW = min((float)conf->edgeSizeW / (float)inputImg.size().width, (float)conf->edgeSizeH / (float)inputImg.size().height);
 
-    printf("addRatio - %f\n", addRatio);
+    //printf("addRatio - %f\n", addRatio);
     float xRatio = (float)inputImg.cols / ((float)inputImg.cols*addRatio);
-    printf("xRatio - %f\n", xRatio);
+    //printf("xRatio - %f\n", xRatio);
     float yRatio = (float)inputImg.rows / ((float)inputImg.rows*addRatio);
-    printf("yRatio - %f\n", yRatio);
+    //printf("yRatio - %f\n", yRatio);
     float *data = predictions;
 
     //const int dimensions = 85;
@@ -586,7 +563,7 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
         isFile = true;
     }
 
-    printf("labels size - %d \n", labels.size());
+    //printf("labels size - %d \n", labels.size());
 
     for (int i = 0; i < rows; i++) {
 
@@ -634,7 +611,7 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
         data += step;
     }
 
-    printf("indices part \n");
+    //printf("indices part \n");
 
     std::vector<int> indices;
     NMSBoxes(_bbox, _confidence, conf->threshold_main, conf->threshold_boxes, indices);
@@ -649,49 +626,59 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
         file_nms.open(name_nms, std::ios_base::out);
     }
 
-    printf("indices size part - %d\n", indices.size());
+    //printf("indices size part - %d\n", indices.size());
+
+    objects.resize(indices.size()); 
 
     for (int i = 0; i < indices.size(); i++)
     {
         int idx = indices[i];
 
-        printf("idx = %d\n", idx);
+        //printf("idx = %d\n", idx);
 
         cv::Rect box = _bbox[idx];
         int left = box.x;
         int top = box.y;
         int width = box.width;
         int height = box.height;
+
+        objects[i].rect.x = left;
+        objects[i].rect.y = top;
+        objects[i].rect.width = width;
+        objects[i].rect.height = height;  
+        objects[i].prob = _confidence[idx];
+        objects[i].label = idx;
+
         // Draw bounding box.
-        printf("Draw bounding box\n");
+        //printf("Draw bounding box\n");
         rectangle(inputImg, cv::Point(left, top), cv::Point(left + width, top + height), getColor(_confidence[idx]), THICKNESS);
         // Get the label for the class name and its confidence.
 
         std::string label = cv::format("%.2f", _confidence[idx]);
-        printf("Get the label for the class name and its confidence - %s\n", label.c_str());
+        //printf("Get the label for the class name and its confidence - %s\n", label.c_str());
 
         label = labels[_classId[idx]] + ":" + label;
 
-        printf("Get the label for the class name and its confidence - %s\n", label.c_str());
+        //printf("Get the label for the class name and its confidence - %s\n", label.c_str());
 
         // Draw class labels.
-        printf("Draw class labels left %d, top %d, width %d\n",left, top, width );
+        //printf("Draw class labels left %d, top %d, width %d\n",left, top, width );
         draw_label(inputImg, label, left, top, width, _confidence[idx]);//- (int)((float)height*(_confidence[idx]))
         if(conf->out_nms){
             file_nms << labels[_classId[idx]] << " " << _confidence[idx] << " " << left << " " << top << " " << width << " " << height << std::endl;
         }
-        printf("Lable top - %d\n", top);
-        printf("Lable top ratio - %f\n", _confidence[idx]);
-        printf("Lable mod top - %d\n", (int)((float)top*(1.0 -_confidence[idx])));
+        //printf("Lable top - %d\n", top);
+        //printf("Lable top ratio - %f\n", _confidence[idx]);
+        //printf("Lable mod top - %d\n", (int)((float)top*(1.0 -_confidence[idx])));
     }
-    printf("indices size part end\n");
+    //printf("indices size part end\n");
     if(conf->out_nms){
         file_nms.close();
     }
     if(isFile){
         file.close();
     }
-     printf("return part \n");
+    //printf("return part \n");
     return inputImg;
 }
 
@@ -799,9 +786,9 @@ void GetImage(PreProcessedData *pstPreProcessedData){
     cv::Size inputSize = cv::Size(pstPreProcessedData->iResizeW, pstPreProcessedData->iResizeH);
     if (sample.size() != inputSize)
     {
-		std::cout << "input size should be :" << pstPreProcessedData->iResizeC << " " << pstPreProcessedData->iResizeH << " " << pstPreProcessedData->iResizeW << std::endl;
-		std::cout << "now input size is :" << img.channels() << " " << img.rows<<" " << img.cols << std::endl;
-		std::cout << "img is going to resize!" << std::endl;
+		//std::cout << "input size should be :" << pstPreProcessedData->iResizeC << " " << pstPreProcessedData->iResizeH << " " << pstPreProcessedData->iResizeW << std::endl;
+		//std::cout << "now input size is :" << img.channels() << " " << img.rows<<" " << img.cols << std::endl;
+		//std::cout << "img is going to resize!" << std::endl;
 		resize(sample_norm, sample_resized, inputSize);
 	}
     else
@@ -1135,6 +1122,7 @@ static void parse_images_dir(const std::string& base_path, std::vector<std::stri
         }
         //}
     }
+    sort(file_path.begin(), file_path.end());
     closedir(dir);
 }
 
@@ -1242,35 +1230,30 @@ int PWM_Enable(int num,int flag)
 
 
 int getTypeSYze(MI_IPU_ELEMENT_FORMAT format){
-    int outData = 0;
-    switch(format){
-        case MI_IPU_FORMAT_U8:
-        outData = 1;
-        break;
-    case MI_IPU_FORMAT_NV12:
-            outData = 2;
-        break;
-    case MI_IPU_FORMAT_INT16:
-            outData = 2;
-        break;
-    case MI_IPU_FORMAT_INT32:
-            outData = 3;
-        break;
-    case MI_IPU_FORMAT_INT8:
-            outData = 1;
-        break;
-    case MI_IPU_FORMAT_FP32:
-            outData = 4;
-        break;
-    case MI_IPU_FORMAT_UNKNOWN:
-            outData = 4;
-        break;
-    case MI_IPU_FORMAT_ARGB8888:
-            outData = 4;
-        break;
-    case MI_IPU_FORMAT_ABGR8888:
-            outData = 4;
-        break;
+    switch (format) {
+        case MI_IPU_FORMAT_INT16:
+            return sizeof(short);
+        case MI_IPU_FORMAT_INT32:
+            return sizeof(int);
+        case MI_IPU_FORMAT_INT8:
+            return sizeof(char);
+        case MI_IPU_FORMAT_FP32:
+            return sizeof(float);
+        case MI_IPU_FORMAT_UNKNOWN:
+        default:
+            return 1;
     }
-    return outData;
+}
+
+void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::vector<std::string> &labels, BYTETracker &tracker){
+    for (int i = 0; i < stracks.size(); i++){
+		vector<float> tlwh = stracks[i].tlwh;
+		bool vertical = tlwh[2] / tlwh[3] > 1.6;
+		if (tlwh[2] * tlwh[3] > 20 && !vertical)
+		{
+			Scalar s = tracker.get_color(stracks[i].track_id);
+			putText(inputImg, format("%d", stracks[i].track_id), Point(tlwh[0], tlwh[1] - 5), 0, 0.6, Scalar(0, 255, 0), 2, LINE_AA);
+            rectangle(inputImg, Rect(tlwh[0], tlwh[1], tlwh[2], tlwh[3]), s, 2);
+		}
+	} 
 }

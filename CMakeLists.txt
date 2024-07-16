@@ -168,15 +168,18 @@ include_directories(${SECOND_DIR})
 #message(STATUS "MOT_APP_LIBRARY12 path = ${MOT_APP_LIBRARY12}")
 
 add_custom_target(deploy ALL DEPENDS ${TARGET_BINARY})
+add_custom_target(Profile ALL DEPENDS ${TARGET_BINARY})
 set(BOARD_IP  10.42.0.214)
 set(PORT_NO 5050)
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
    #add_compile_definition(${PROJECT_NAME} PUBLIC "$<$<CONFIG:Debug>:__DEBUG__>")  #since 3.12 version
-   add_compile_options(
-                       "-Wall" "-Wpedantic" "-Wextra" "-fexceptions"
-                       "$<$<CONFIG:DEBUG>:-O0;-g3;-ggdb>"
-    )
+   #add_compile_options(
+   #                    "-Wall" "-Wpedantic" "-Wextra" "-fexceptions"
+   #                    "$<$<CONFIG:DEBUG>:-O0;-g;-ggdb;>"
+   # )
+
+    SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -ggdb -pg")
     message("CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
     #add_custom_target(build_and_debug ALL DEPENDS ${TARGET_BINARY})
     #add_custom_target("deploy")
@@ -185,7 +188,24 @@ add_custom_command(
     #COMMAND scp ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_BINARY} root@${BOARD_IP}:/usr/bin
     COMMENT "Copy files..."
     COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/${TARGET_BINARY} "/nfs/rootfs_533/config/custom/mot-app"
-    COMMAND sshpass -p "welcome" ssh -vv -y -f -L${PORT_NO}:localhost:${PORT_NO} root@${BOARD_IP} 'gdbserver :${PORT_NO} /config/custom/mot-app/${TARGET_BINARY} /config/custom/mot-app/config.ini'
+    COMMAND sshpass -p "welcome" ssh -vv -y -f -L${PORT_NO}:localhost:${PORT_NO} root@${BOARD_IP} gdbserver :${PORT_NO} /config/custom/mot-app/${TARGET_BINARY} /config/custom/mot-app/config.ini
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    VERBATIM
+    USES_TERMINAL
+    )
+endif()
+
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Profile")
+   #add_compile_options(
+    #                   "-Wall" "-Wpedantic" "-Wextra" "-fexceptions"
+     #                  "$<$<CONFIG:DEBUG>:-O0;-g;-ggdb;-pg;>"
+    #)
+    message("CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
+     SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -ggdb -pg")
+add_custom_command(
+    TARGET Profile POST_BUILD
+    COMMENT "Copy files..."
+    COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/${TARGET_BINARY} "/nfs/rootfs_533/config/custom/mot-app"
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     VERBATIM
     USES_TERMINAL

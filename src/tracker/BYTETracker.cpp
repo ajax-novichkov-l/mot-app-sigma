@@ -2,14 +2,14 @@
 #include <iostream>
 #include <fstream>
 
-BYTETracker::BYTETracker(int frame_rate, int track_buffer)
+BYTETracker::BYTETracker(int frame_rate)
 {
 	track_thresh = 0.5;
 	high_thresh = 0.6;
-	match_thresh = 0.8;
+	match_thresh = 0.7;
 
 	frame_id = 0;
-	max_time_lost = int(frame_rate / 30.0 * track_buffer);
+	max_time_lost = int(2);
 	cout << "Init ByteTrack!" << endl;
 }
 

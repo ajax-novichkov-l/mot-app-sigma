@@ -26,6 +26,19 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+                {
+            "label": "mot-app-profile",
+            "type": "shell",
+            // Assign output file name with VSCode inner variables like ${fileBasename}
+            "command": "cmake -DCMAKE_BUILD_TYPE:STRING=Profile ./",
+            "options": {
+            },
+            "problemMatcher": ["$gcc"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         }
     ]
 }
