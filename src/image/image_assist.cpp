@@ -62,7 +62,7 @@ using std::ios;
 #include "mi_sys_datatype.h"
 #include "mi_ipu.h"
 #include "mi_sys.h"
-
+#include "dataType.h"
 
 
 #define  DETECT_IMAGE_FUNC_INFO(fmt, args...)           do {printf("[Info ] [%-4d] [%10s] ", __LINE__, __func__); printf(fmt, ##args);} while(0)
@@ -89,24 +89,6 @@ using std::ios;
 #define DIVP_YUV_ALIGNMENT (16)
 #define SRC_IMAGE_SIZE (1920*1080*4)
 #define DST_IMAGE_SIZE (1920*1080*4)   
-
-typedef struct _globalConfig{
-    std::string path_ipuFw;
-    std::string path_model;
-    std::string path_imgages;
-    std::string path_labels;
-    std::string dataType;
-    unsigned int edgeSizeH;
-    unsigned int edgeSizeW;
-    unsigned int iterations;
-    bool out_boxes;
-    bool out_dump;
-    bool out_txt;
-    bool out_nms;
-    double  threshold_confidence;
-    double  threshold_main;
-    double  threshold_boxes;
-}globalConfig;
 
 globalConfig programGonfig;
 
@@ -497,11 +479,11 @@ float OpenCV_Image(PreProcessedData* pstPreProcessedData){
     return ratio;
 }
 
-void draw_label(cv::Mat& input_image, std::string label, int left, int top, int maxSize, float prc){
+cv::Size draw_label(cv::Mat& input_image, std::string label, int left, int top, int maxSize, float prc){
     // Display the label at the top of the bounding box.
     int baseLine;
     cv::Size label_size = cv::getTextSize(label, FONT_FACE, 1, THICKNESS, &baseLine);
-
+    cv::Size _label_size = cv::getTextSize(label, FONT_FACE, 1, THICKNESS, &baseLine);
     //printf("label_size.w -%d, label_size.h - %d \n", label_size.width, label_size.height);
 
     top = max(top, label_size.height);
@@ -515,6 +497,14 @@ void draw_label(cv::Mat& input_image, std::string label, int left, int top, int 
 
     //std::cout << "label scale - " << scale << std::endl;
 
+    if((left+label_size.width*scale)>input_image.size().width){
+        left = input_image.size().width - label_size.width*scale;
+    }
+    if(left <=0)
+    left=1;
+        if(top <=0)
+    top=1;
+
     cv::Point tlc = cv::Point(left, top);
 
     //printf("tlc.x -%d, tlc.y - %d \n", tlc.x, tlc.y);
@@ -524,10 +514,20 @@ void draw_label(cv::Mat& input_image, std::string label, int left, int top, int 
     //printf("brc.x -%d, brc.y - %d \n", brc.x, brc.y);
 
     //printf("rectangle start\n");
-    cv::rectangle(input_image, tlc, brc, BLACK, cv::FILLED);
+    //cv::rectangle(input_image, tlc, brc, cv::Scalar(255, 255, 255), cv::FILLED);
+
+    
+    cv::Mat lab = input_image(cv::Rect(tlc, brc));
+    cv::Mat color(lab.size(), CV_8UC3, cv::Scalar(0, 0, 0)); 
+    double alpha = 0.5;
+    cv::addWeighted(color, alpha, lab, 1.0 - alpha , 0.0, lab);
+
     //printf("rectangle end\n");
     ///("putText\n");
     cv::putText(input_image, label, cv::Point(left, top + (int)(label_size.height*scale)), FONT_FACE, scale, getColor(prc), THICKNESS);
+    label_size.width *= (float)scale;
+    label_size.height *= (float)scale;
+    return label_size;
 }
 
 cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::string> &labels, float ratio, std::string filename, int step, globalConfig *conf ) {
@@ -564,6 +564,9 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
     }
 
     //printf("labels size - %d \n", labels.size());
+
+    //objects.resize(rows); //indices.size()
+
 
     for (int i = 0; i < rows; i++) {
 
@@ -606,6 +609,13 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
                 if(isFile){
                     file << labels[class_id.x].c_str() << ", confidence - " << confidence << ", left - " << left << ", top - " << top << ", width - " << width << ", height - " << height << std::endl;
                 }
+
+                /*objects[i].rect.x = left;
+                objects[i].rect.y = top;
+                objects[i].rect.width = width;
+                objects[i].rect.height = height;  
+                objects[i].prob = confidence;
+                objects[i].label = class_id.x;*/
             }
         }
         data += step;
@@ -647,23 +657,14 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
         objects[i].rect.width = width;
         objects[i].rect.height = height;  
         objects[i].prob = _confidence[idx];
-        objects[i].label = idx;
+        objects[i].label = _classId[idx];
 
-        // Draw bounding box.
-        //printf("Draw bounding box\n");
-        rectangle(inputImg, cv::Point(left, top), cv::Point(left + width, top + height), getColor(_confidence[idx]), THICKNESS);
-        // Get the label for the class name and its confidence.
 
+        //rectangle(inputImg, cv::Point(left, top), cv::Point(left + width, top + height), getColor(_confidence[idx]), THICKNESS);
         std::string label = cv::format("%.2f", _confidence[idx]);
-        //printf("Get the label for the class name and its confidence - %s\n", label.c_str());
-
         label = labels[_classId[idx]] + ":" + label;
-
-        //printf("Get the label for the class name and its confidence - %s\n", label.c_str());
-
-        // Draw class labels.
-        //printf("Draw class labels left %d, top %d, width %d\n",left, top, width );
-        draw_label(inputImg, label, left, top, width, _confidence[idx]);//- (int)((float)height*(_confidence[idx]))
+        draw_label(inputImg, label, left, top-50, width, _confidence[idx]);
+        
         if(conf->out_nms){
             file_nms << labels[_classId[idx]] << " " << _confidence[idx] << " " << left << " " << top << " " << width << " " << height << std::endl;
         }
@@ -1245,15 +1246,64 @@ int getTypeSYze(MI_IPU_ELEMENT_FORMAT format){
     }
 }
 
+// cv::putText(input_image, label, cv::Point(left, top + (int)(label_size.height*scale)), FONT_FACE, scale, getColor(prc), THICKNESS);
+
+template<typename ... Args>
+std::string string_format( const std::string& format, Args ... args )
+{
+    int size_s = std::snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
+    if( size_s <= 0 ){ throw std::runtime_error( "Error during formatting." ); }
+    auto size = static_cast<size_t>( size_s );
+    std::unique_ptr<char[]> buf( new char[ size ] );
+    std::snprintf( buf.get(), size, format.c_str(), args ... );
+    return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
+}
+
 void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::vector<std::string> &labels, BYTETracker &tracker){
+    int h = 0;
     for (int i = 0; i < stracks.size(); i++){
 		vector<float> tlwh = stracks[i].tlwh;
-		bool vertical = tlwh[2] / tlwh[3] > 1.6;
-		if (tlwh[2] * tlwh[3] > 20 && !vertical)
-		{
-			Scalar s = tracker.get_color(stracks[i].track_id);
-			putText(inputImg, format("%d", stracks[i].track_id), Point(tlwh[0], tlwh[1] - 5), 0, 0.6, Scalar(0, 255, 0), 2, LINE_AA);
-            rectangle(inputImg, Rect(tlwh[0], tlwh[1], tlwh[2], tlwh[3]), s, 2);
-		}
+		//bool vertical = tlwh[2] / tlwh[3] > 1.6;
+		//if (tlwh[2] * tlwh[3] > 20 && !vertical)
+		//{
+		Scalar s = tracker.get_color(stracks[i].track_id);
+// class - %s", labels[stracks[i].classId].c_str()
+        h = tlwh[1]+1;
+        string label = cv::format("obj - %d", stracks[i].track_id);
+        cv::Size _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);//- (int)((float)height*(_confidence[idx])) 
+        label = cv::format("score-%.2f", stracks[i].score);
+        h += (_size.height+1);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
+        label = cv::format("%s", labels[stracks[i].classId].c_str());
+        h += (_size.height+1);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
+
+        label = cv::format("state-%d", stracks[i].state);
+        h += (_size.height+1);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
+
+        label = cv::format("Vx-%.2f", stracks[i].mean(4));
+        h += (_size.height+1);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
+        label = cv::format("Vy-%.2f", stracks[i].mean(5));
+        h += (_size.height+1);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
+        label = cv::format("Va-%.2f", stracks[i].mean(6));
+        h += (_size.height+1);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
+        label = cv::format("Vh-%.2f", stracks[i].mean(7));
+        h += (_size.height+1);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
+
+
+        //int fontFace = cv::FONT_HERSHEY_DUPLEX, fontScale = _label.size() / 10;
+        //cv::Size textSize = getTextSize(inputImg, fontFace, fontScale, 0, 0);
+    	//putText(inputImg, _label, Point(tlwh[0], tlwh[1] - 5), fontFace, fontScale, Scalar(0, 255, 0), 2, LINE_AA);
+        rectangle(inputImg, Rect(tlwh[0], tlwh[1], tlwh[2], tlwh[3]), getColor(stracks[i].score), 1);
+
+        cv::drawMarker(inputImg, Point2f(stracks[i].mean(0), stracks[i].mean(1)), Scalar(255, 0, 0), 0, 20, 1);
+        cv::drawMarker(inputImg, Point2f(stracks[i].mean_prev(0), stracks[i].mean_prev(1)), Scalar(0, 0, 255), 0, 20, 1);
+
+		//}
 	} 
 }

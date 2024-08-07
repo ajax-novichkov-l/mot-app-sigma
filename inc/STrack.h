@@ -1,6 +1,6 @@
 #pragma once
 
-#include <opencv.hpp>
+#include <opencv2/opencv.hpp>
 #include "kalmanFilter.h"
 
 using namespace cv;
@@ -11,7 +11,7 @@ enum TrackState { New = 0, Tracked, Lost, Removed };
 class STrack
 {
 public:
-	STrack(vector<float> tlwh_, float score);
+	STrack(vector<float> tlwh_, float score, int label);
 	~STrack();
 
 	vector<float> static tlbr_to_tlwh(vector<float> &tlbr);
@@ -25,7 +25,7 @@ public:
 	int next_id();
 	int end_frame();
 	
-	void activate(byte_kalman::KalmanFilter &kalman_filter, int frame_id);
+	void activate(byte_kalman::KalmanFilter &kalman_filter, int frame_id);//, int classId
 	void re_activate(STrack &new_track, int frame_id, bool new_id = false);
 	void update(STrack &new_track, int frame_id);
 
@@ -33,7 +33,7 @@ public:
 	bool is_activated;
 	int track_id;
 	int state;
-
+	int classId;
 	vector<float> _tlwh;
 	vector<float> tlwh;
 	vector<float> tlbr;
@@ -42,9 +42,10 @@ public:
 	int start_frame;
 
 	KAL_MEAN mean;
+	KAL_MEAN mean_prev;
 	KAL_COVA covariance;
 	float score;
 
-private:
+//private:
 	byte_kalman::KalmanFilter kalman_filter;
 };

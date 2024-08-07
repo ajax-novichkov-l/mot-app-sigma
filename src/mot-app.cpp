@@ -4,8 +4,20 @@
 #include "BYTETracker.h"
 
 #include "image/image_assist.cpp"
+#include "opencv2/imgproc.hpp"
 
 using namespace std;
+
+void checkDirectory(const char* dirName){
+    struct stat sb;
+    if (stat(dirName, &sb) != 0){
+        std::cout << "Created directory - " << dirName << std::endl;
+        mode_t mode = 0755;
+        mkdir(dirName, mode);
+    }
+}
+
+#define outImgDir "mot_out_img"
 
 int main(int argc,char *argv[]){
     cout << "Hello there...";
@@ -50,6 +62,24 @@ int main(int argc,char *argv[]){
     programGonfig.threshold_boxes = iniparser_getdouble(pstDict, ":threshold_boxes", 0.7);
     cout << "threshold_boxes - " << programGonfig.threshold_boxes  << endl; 
 
+    programGonfig.mot_track_thresh = iniparser_getdouble(pstDict, ":mot_track_thresh", 0.0);
+    cout << "mot_track_thresh - " << programGonfig.mot_track_thresh  << endl; 
+    programGonfig.mot_high_thresh = iniparser_getdouble(pstDict, ":mot_high_thresh", 0.0);
+    cout << "mot_high_thresh - " << programGonfig.mot_high_thresh  << endl; 
+    programGonfig.mot_match_thresh = iniparser_getdouble(pstDict, ":mot_match_thresh", 0.0);
+    cout << "mot_match_thresh - " << programGonfig.mot_match_thresh  << endl; 
+
+    programGonfig.mot_fps = iniparser_getint(pstDict, ":mot_fps", 0);
+    cout << "mot_fps - " << programGonfig.mot_fps  << endl; 
+    programGonfig.mot_max_time_lost = iniparser_getint(pstDict, ":mot_max_time_lost", 0);
+    cout << "mot_max_time_lost - " << programGonfig.mot_max_time_lost  << endl; 
+
+    string _ts("/mot_out_img");
+    string _checkDirName = programGonfig.path_imgages + _ts;
+
+    checkDirectory(_checkDirName.c_str());
+
+
     MI_U32 u32ChannelID = 0;
     std::string mFormat = programGonfig.dataType;
     MI_BOOL bRGB = FALSE;
@@ -58,7 +88,7 @@ int main(int argc,char *argv[]){
     MI_IPU_TensorVector_t OutputTensorVector;
     MI_IPU_OfflineModelStaticInfo_t OfflineModelInfo;
 
-    BYTETracker tracker(1);//fps = 6
+    BYTETracker tracker(programGonfig);
     int num_frames = 0;
     int total_ms = 1;
     
@@ -199,19 +229,19 @@ for (int idx = 0; idx < images.size(); idx++) {
         stProcessedData.pImagePath = images[idx];
 
         float reatio = OpenCV_Image(&stProcessedData);
-        cout<<"memcpy ok"<<endl;
+        //cout<<"memcpy ok"<<endl;
 
         //4.invoke
-        #if 1
+        #if 0
             struct  timeval    tv_start;
             struct  timeval    tv_end;
             gettimeofday(&tv_start,NULL);
         #endif
 
         //cout<<"IPU invoke :"<<endl;
-        int times = 1;
-        for (int i=0;i<times;i++ )
-        {
+        //int times = 1;
+        //for (int i=0;i<times;i++ )
+        //{
             if(MI_SUCCESS!=MI_IPU_Invoke(u32ChannelID, &InputTensorVector, &OutputTensorVector))
             {
                 cout<<"IPU invoke failed!!"<<endl;
@@ -220,14 +250,14 @@ for (int idx = 0; idx < images.size(); idx++) {
                 MI_IPU_DestroyDevice();
                 return -1;
             }
-        }
-        #if 1
+        //}
+        #if 0
             gettimeofday(&tv_end,NULL);
             int elasped_time = (tv_end.tv_sec-tv_start.tv_sec)*1000+(tv_end.tv_usec-tv_start.tv_usec)/1000;
             cout<<"fps:"<<1000.0/(float(elasped_time)/times)<<std::endl;
         #endif
 
-        cout<<"show result of detect :"<<endl;
+        //cout<<"show result of detect :"<<endl;
 
         // show result of detect
         //float *pfData = new float[s32ClassCount];
@@ -259,8 +289,11 @@ for (int idx = 0; idx < images.size(); idx++) {
         vector<STrack> output_stracks = tracker.update(objects); 
         trackToImage(img, output_stracks, class_list, tracker);
 
+
         if(programGonfig.out_boxes){
-            cv::imwrite(strOutImageName.c_str(), img);
+            string _tmp("/mot_out_img/");
+            string _outName = programGonfig.path_imgages + _tmp + strOutImageName;
+            cv::imwrite(_outName.c_str(), img);
             cout<<"Save image: "<< strOutImageName.c_str() <<endl;
         }
 

@@ -3,18 +3,6 @@
 
 namespace byte_kalman
 {
-	const double KalmanFilter::chi2inv95[10] = {
-	0,
-	3.8415,
-	5.9915,
-	7.8147,
-	9.4877,
-	11.070,
-	12.592,
-	14.067,
-	15.507,
-	16.919
-	};
 	KalmanFilter::KalmanFilter()
 	{
 		int ndim = 4;
@@ -26,8 +14,8 @@ namespace byte_kalman
 		}
 		_update_mat = Eigen::MatrixXf::Identity(4, 8);
 
-		this->_std_weight_position = 1. / 20;
-		this->_std_weight_velocity = 1. / 160;
+		this->_std_weight_position = 0.8;
+		this->_std_weight_velocity = 0.7;
 	}
 
 	KAL_DATA KalmanFilter::initiate(const DETECTBOX &measurement)
@@ -50,7 +38,7 @@ namespace byte_kalman
 		std(4) = 10 * _std_weight_velocity * measurement[3];
 		std(5) = 10 * _std_weight_velocity * measurement[3];
 		std(6) = 1e-5;
-		std(7) = 10 * _std_weight_velocity * measurement[3];
+		std(7) = 10 * _std_weight_velocity * measurement[3]; 
 
 		KAL_MEAN tmp = std.array().square();
 		KAL_COVA var = tmp.asDiagonal();
@@ -61,15 +49,9 @@ namespace byte_kalman
 	{
 		//revise the data;
 		DETECTBOX std_pos;
-		std_pos << _std_weight_position * mean(3),
-			_std_weight_position * mean(3),
-			1e-2,
-			_std_weight_position * mean(3);
+		std_pos << _std_weight_position * mean(0), _std_weight_position * mean(1), _std_weight_position * mean(2), _std_weight_position * mean(3);
 		DETECTBOX std_vel;
-		std_vel << _std_weight_velocity * mean(3),
-			_std_weight_velocity * mean(3),
-			1e-5,
-			_std_weight_velocity * mean(3);
+		std_vel << _std_weight_velocity * mean(0), _std_weight_velocity * mean(1), _std_weight_velocity * mean(2), _std_weight_velocity * mean(3);
 		KAL_MEAN tmp;
 		tmp.block<1, 4>(0, 0) = std_pos;
 		tmp.block<1, 4>(0, 4) = std_vel;
@@ -86,8 +68,7 @@ namespace byte_kalman
 	KAL_HDATA KalmanFilter::project(const KAL_MEAN &mean, const KAL_COVA &covariance)
 	{
 		DETECTBOX std;
-		std << _std_weight_position * mean(3), _std_weight_position * mean(3),
-			1e-1, _std_weight_position * mean(3);
+		std << _std_weight_position * mean(0), _std_weight_position * mean(1), _std_weight_position * mean(2), _std_weight_position * mean(3);
 		KAL_HMEAN mean1 = _update_mat * mean.transpose();
 		KAL_HCOVA covariance1 = _update_mat * covariance * (_update_mat.transpose());
 		Eigen::Matrix<float, 4, 4> diag = std.asDiagonal();
@@ -107,12 +88,6 @@ namespace byte_kalman
 		KAL_HMEAN projected_mean = pa.first;
 		KAL_HCOVA projected_cov = pa.second;
 
-		//chol_factor, lower =
-		//scipy.linalg.cho_factor(projected_cov, lower=True, check_finite=False)
-		//kalmain_gain =
-		//scipy.linalg.cho_solve((cho_factor, lower),
-		//np.dot(covariance, self._upadte_mat.T).T,
-		//check_finite=False).T
 		Eigen::Matrix<float, 4, 8> B = (covariance * (_update_mat.transpose())).transpose();
 		Eigen::Matrix<float, 8, 4> kalman_gain = (projected_cov.llt().solve(B)).transpose(); // eg.8x4
 		Eigen::Matrix<float, 1, 4> innovation = measurement - projected_mean; //eg.1x4
@@ -126,27 +101,21 @@ namespace byte_kalman
 		KalmanFilter::gating_distance(
 			const KAL_MEAN &mean,
 			const KAL_COVA &covariance,
-			const std::vector<DETECTBOX> &measurements,
-			bool only_position)
+			const std::vector<DETECTBOX> &measurements)
 	{
 		KAL_HDATA pa = this->project(mean, covariance);
-		if (only_position) {
-			printf("not implement!");
-			exit(0);
-		}
 		KAL_HMEAN mean1 = pa.first;
 		KAL_HCOVA covariance1 = pa.second;
 
-		//    Eigen::Matrix<float, -1, 4, Eigen::RowMajor> d(size, 4);
 		DETECTBOXSS d(measurements.size(), 4);
 		int pos = 0;
 		for (DETECTBOX box : measurements) {
 			d.row(pos++) = box - mean1;
 		}
 		Eigen::Matrix<float, -1, -1, Eigen::RowMajor> factor = covariance1.llt().matrixL();
-		Eigen::Matrix<float, -1, -1> z = factor.triangularView<Eigen::Lower>().solve<Eigen::OnTheRight>(d).transpose();
-		auto zz = ((z.array())*(z.array())).matrix();
-		auto square_maha = zz.colwise().sum();
+		Eigen::Matrix<float, -1, -1> _tri = factor.triangularView<Eigen::Lower>().solve<Eigen::OnTheRight>(d).transpose();
+		auto _d_tri = ((_tri.array())*(_tri.array())).matrix();
+		auto square_maha = _d_tri.colwise().sum();
 		return square_maha;
 	}
 }

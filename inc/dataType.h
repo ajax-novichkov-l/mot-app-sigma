@@ -3,8 +3,8 @@
 #include <cstddef>
 #include <vector>
 
-#include <Eigen/Core>
-#include <Eigen/Dense>
+#include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Dense>
 typedef Eigen::Matrix<float, 1, 4, Eigen::RowMajor> DETECTBOX;
 typedef Eigen::Matrix<float, -1, 4, Eigen::RowMajor> DETECTBOXSS;
 typedef Eigen::Matrix<float, 1, 128, Eigen::RowMajor> FEATURE;
@@ -31,6 +31,30 @@ typedef struct t {
 	std::vector<int> unmatched_tracks;
 	std::vector<int> unmatched_detections;
 }TRACHER_MATCHD;
+
+typedef struct _globalConfig{
+    std::string path_ipuFw;
+    std::string path_model;
+    std::string path_imgages;
+    std::string path_labels;
+    std::string dataType;
+    unsigned int edgeSizeH;
+    unsigned int edgeSizeW;
+    unsigned int iterations;
+    bool out_boxes;
+    bool out_dump;
+    bool out_txt;
+    bool out_nms;
+    double  threshold_confidence;
+    double  threshold_main;
+    double  threshold_boxes;
+
+	double mot_track_thresh;
+	double mot_high_thresh;
+	double mot_match_thresh;
+	unsigned int mot_fps;
+	unsigned int mot_max_time_lost;
+}globalConfig;
 
 //linear_assignment:
 typedef Eigen::Matrix<float, -1, -1, Eigen::RowMajor> DYNAMICM;

@@ -179,7 +179,7 @@ if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
    #                    "$<$<CONFIG:DEBUG>:-O0;-g;-ggdb;>"
    # )
 
-    SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -ggdb -pg")
+    SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -ggdb -g")
     message("CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
     #add_custom_target(build_and_debug ALL DEPENDS ${TARGET_BINARY})
     #add_custom_target("deploy")
@@ -211,5 +211,3 @@ add_custom_command(
     USES_TERMINAL
     )
 endif()
-
-

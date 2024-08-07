@@ -1,6 +1,6 @@
 #include "STrack.h"
 
-STrack::STrack(vector<float> tlwh_, float score)
+STrack::STrack(vector<float> tlwh_, float score, int label)
 {
 	_tlwh.resize(4);
 	_tlwh.assign(tlwh_.begin(), tlwh_.end());
@@ -17,6 +17,7 @@ STrack::STrack(vector<float> tlwh_, float score)
 	frame_id = 0;
 	tracklet_len = 0;
 	this->score = score;
+	this->classId = label;
 	start_frame = 0;
 }
 
@@ -24,7 +25,7 @@ STrack::~STrack()
 {
 }
 
-void STrack::activate(byte_kalman::KalmanFilter &kalman_filter, int frame_id)
+void STrack::activate(byte_kalman::KalmanFilter &kalman_filter, int frame_id)//, int classId
 {
 	this->kalman_filter = kalman_filter;
 	this->track_id = this->next_id();
@@ -52,6 +53,7 @@ void STrack::activate(byte_kalman::KalmanFilter &kalman_filter, int frame_id)
 	if (frame_id == 1)
 	{
 		this->is_activated = true;
+		//this->classId = classId;
 	}
 	//this->is_activated = true;
 	this->frame_id = frame_id;
@@ -95,6 +97,7 @@ void STrack::update(STrack &new_track, int frame_id)
 	xyah_box[3] = xyah[3];
 
 	auto mc = this->kalman_filter.update(this->mean, this->covariance, xyah_box);
+	this->mean_prev = this->mean;
 	this->mean = mc.first;
 	this->covariance = mc.second;
 

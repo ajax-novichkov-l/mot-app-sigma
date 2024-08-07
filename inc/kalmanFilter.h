@@ -7,7 +7,6 @@ namespace byte_kalman
 	class KalmanFilter
 	{
 	public:
-		static const double chi2inv95[10];
 		KalmanFilter();
 		KAL_DATA initiate(const DETECTBOX& measurement);
 		void predict(KAL_MEAN& mean, KAL_COVA& covariance);
@@ -19,8 +18,7 @@ namespace byte_kalman
 		Eigen::Matrix<float, 1, -1> gating_distance(
 			const KAL_MEAN& mean,
 			const KAL_COVA& covariance,
-			const std::vector<DETECTBOX>& measurements,
-			bool only_position = false);
+			const std::vector<DETECTBOX>& measurements);
 
 	private:
 		Eigen::Matrix<float, 8, 8, Eigen::RowMajor> _motion_mat;

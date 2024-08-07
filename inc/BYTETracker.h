@@ -12,7 +12,7 @@ struct Object
 class BYTETracker
 {
 public:
-	BYTETracker(int frame_rate = 1);
+	BYTETracker(globalConfig& conf);
 	~BYTETracker();
 
 	vector<STrack> update(const vector<Object>& objects);
@@ -23,10 +23,11 @@ private:
 	vector<STrack> joint_stracks(vector<STrack> &tlista, vector<STrack> &tlistb);
 
 	vector<STrack> sub_stracks(vector<STrack> &tlista, vector<STrack> &tlistb);
+	
 	void remove_duplicate_stracks(vector<STrack> &resa, vector<STrack> &resb, vector<STrack> &stracksa, vector<STrack> &stracksb);
-
 	void linear_assignment(vector<vector<float> > &cost_matrix, int cost_matrix_size, int cost_matrix_size_size, float thresh,
-		vector<vector<int> > &matches, vector<int> &unmatched_a, vector<int> &unmatched_b);
+	
+	vector<vector<int> > &matches, vector<int> &unmatched_a, vector<int> &unmatched_b);
 	vector<vector<float> > iou_distance(vector<STrack*> &atracks, vector<STrack> &btracks, int &dist_size, int &dist_size_size);
 	vector<vector<float> > iou_distance(vector<STrack> &atracks, vector<STrack> &btracks);
 	vector<vector<float> > ious(vector<vector<float> > &atlbrs, vector<vector<float> > &btlbrs);
