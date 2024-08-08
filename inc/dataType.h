@@ -52,6 +52,19 @@ typedef struct _globalConfig{
 	double mot_track_thresh;
 	double mot_high_thresh;
 	double mot_match_thresh;
+
+	double mot_c0_track_thresh;
+	double mot_c0_high_thresh;
+	double mot_c0_match_thresh;
+
+	double mot_c1_track_thresh;
+	double mot_c1_high_thresh;
+	double mot_c1_match_thresh;
+
+	double mot_c2_track_thresh;
+	double mot_c2_high_thresh;
+	double mot_c2_match_thresh;
+
 	unsigned int mot_fps;
 	unsigned int mot_max_time_lost;
 }globalConfig;

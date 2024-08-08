@@ -2,12 +2,13 @@
 #include <iostream>
 #include <fstream>
 
-BYTETracker::BYTETracker(globalConfig& conf){
-	track_thresh = conf.mot_track_thresh;
-	high_thresh = conf.mot_high_thresh;
-	match_thresh = conf.mot_match_thresh;
+BYTETracker::BYTETracker(globalConfig *conf){
+	track_thresh = conf->mot_track_thresh;
+	high_thresh = conf->mot_high_thresh;
+	match_thresh = conf->mot_match_thresh;
 	frame_id = 0;
-	max_time_lost = conf.mot_max_time_lost;
+	max_time_lost = conf->mot_max_time_lost;
+	this->conf = conf;
 }
 
 BYTETracker::~BYTETracker(){
@@ -45,8 +46,8 @@ vector<STrack> BYTETracker::update(const vector<Object>& objects){
 
 			float score = objects[i].prob;
 
-			STrack strack(STrack::tlbr_to_tlwh(tlbr_), score, objects[i].label);
-			if (score >= track_thresh){
+			STrack strack(STrack::tlbr_to_tlwh(tlbr_), score, objects[i].label, this->conf);
+			if (score >= strack.track_thresh){
 				detections.push_back(strack);
 			}else{
 				detections_low.push_back(strack);
@@ -153,7 +154,7 @@ vector<STrack> BYTETracker::update(const vector<Object>& objects){
 	////////////////// Step 4: Init new stracks //////////////////
 	for (int i = 0; i < u_detection.size(); i++){
 		STrack *track = &detections[u_detection[i]];
-		if (track->score < this->high_thresh)
+		if (track->score < track->high_thresh)
 			continue;
 		track->activate(this->kalman_filter, this->frame_id);
 		activated_stracks.push_back(*track);

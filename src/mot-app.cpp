@@ -69,16 +69,46 @@ int main(int argc,char *argv[]){
     programGonfig.mot_match_thresh = iniparser_getdouble(pstDict, ":mot_match_thresh", 0.0);
     cout << "mot_match_thresh - " << programGonfig.mot_match_thresh  << endl; 
 
+    programGonfig.mot_c0_track_thresh = iniparser_getdouble(pstDict, ":mot_c0_track_thresh", 0.0);
+    cout << "mot_c0_track_thresh - " << programGonfig.mot_c0_track_thresh  << endl; 
+    programGonfig.mot_c0_high_thresh = iniparser_getdouble(pstDict, ":mot_c0_high_thresh", 0.0);
+    cout << "mot_c0_high_thresh - " << programGonfig.mot_c0_high_thresh  << endl; 
+    programGonfig.mot_c0_match_thresh = iniparser_getdouble(pstDict, ":mot_c0_match_thresh", 0.0);
+    cout << "mot_c0_match_thresh - " << programGonfig.mot_c0_match_thresh  << endl; 
+
+    programGonfig.mot_c1_track_thresh = iniparser_getdouble(pstDict, ":mot_c1_track_thresh", 0.0);
+    cout << "mot_c1_track_thresh - " << programGonfig.mot_c1_track_thresh  << endl; 
+    programGonfig.mot_c1_high_thresh = iniparser_getdouble(pstDict, ":mot_c1_high_thresh", 0.0);
+    cout << "mot_c1_high_thresh - " << programGonfig.mot_c1_high_thresh  << endl; 
+    programGonfig.mot_c1_match_thresh = iniparser_getdouble(pstDict, ":mot_c1_match_thresh", 0.0);
+    cout << "mot_c1_match_thresh - " << programGonfig.mot_c1_match_thresh  << endl; 
+
+    programGonfig.mot_c2_track_thresh = iniparser_getdouble(pstDict, ":mot_c2_track_thresh", 0.0);
+    cout << "mot_c2_track_thresh - " << programGonfig.mot_c2_track_thresh  << endl; 
+    programGonfig.mot_c2_high_thresh = iniparser_getdouble(pstDict, ":mot_c2_high_thresh", 0.0);
+    cout << "mot_c2_high_thresh - " << programGonfig.mot_c2_high_thresh  << endl; 
+    programGonfig.mot_c2_match_thresh = iniparser_getdouble(pstDict, ":mot_c2_match_thresh", 0.0);
+    cout << "mot_c2_match_thresh - " << programGonfig.mot_c2_match_thresh  << endl; 
+
+
     programGonfig.mot_fps = iniparser_getint(pstDict, ":mot_fps", 0);
     cout << "mot_fps - " << programGonfig.mot_fps  << endl; 
     programGonfig.mot_max_time_lost = iniparser_getint(pstDict, ":mot_max_time_lost", 0);
     cout << "mot_max_time_lost - " << programGonfig.mot_max_time_lost  << endl; 
 
+    string _sl("/");
+
     string _ts("/mot_out_img");
     string _checkDirName = programGonfig.path_imgages + _ts;
-
     checkDirectory(_checkDirName.c_str());
 
+    string _js("/mot_out_json");
+    _checkDirName = programGonfig.path_imgages + _js;
+    checkDirectory(_checkDirName.c_str());
+
+    string _ds("/mot_out_dump");
+    _checkDirName = programGonfig.path_imgages + _ds;
+    checkDirectory(_checkDirName.c_str());
 
     MI_U32 u32ChannelID = 0;
     std::string mFormat = programGonfig.dataType;
@@ -88,7 +118,7 @@ int main(int argc,char *argv[]){
     MI_IPU_TensorVector_t OutputTensorVector;
     MI_IPU_OfflineModelStaticInfo_t OfflineModelInfo;
 
-    BYTETracker tracker(programGonfig);
+    BYTETracker tracker(&programGonfig);
     int num_frames = 0;
     int total_ms = 1;
     
@@ -223,10 +253,16 @@ MI_SYS_Init();
     parse_images_dir(foldername, images);
 
     std::cout << "Files count - : " << images.size() << std::endl;
-
+    float *outDATA;
+    float fScalar;
+    char* buffer;
+    std::ifstream inputBuf;
+    cv::Mat frame;
 for (int idx = 0; idx < images.size(); idx++) {
         std::cout << idx + 1 << " / " << images.size() << '\t';
         stProcessedData.pImagePath = images[idx];
+
+        if(!has_suffix(images[idx], ".dmp")){
 
         float reatio = OpenCV_Image(&stProcessedData);
         //cout<<"memcpy ok"<<endl;
@@ -261,8 +297,30 @@ for (int idx = 0; idx < images.size(); idx++) {
 
         // show result of detect
         //float *pfData = new float[s32ClassCount];
-        float *outDATA = (float*)OutputTensorVector.astArrayTensors[0].ptTensorData[0];
-        float fScalar = (float)desc.astMI_OutputTensorDescs[0].fScalar;
+            //cout<<"IPU worked with image - " << images[idx].c_str() <<endl;
+            outDATA = (float*)OutputTensorVector.astArrayTensors[0].ptTensorData[0];
+            fScalar = (float)desc.astMI_OutputTensorDescs[0].fScalar;
+            frame = cv::imread(stProcessedData.pImagePath);
+        }else{
+            inputBuf.open(images[idx].c_str(), std::ios::binary);
+            // get pointer to associated buffer object
+            std::filebuf* pbuf = inputBuf.rdbuf();
+
+            // get file size using buffer's members
+            std::size_t size = pbuf->pubseekoff (0,inputBuf.end,inputBuf.in);
+            pbuf->pubseekpos (0,inputBuf.in);
+
+            // allocate memory to contain file data
+            char* buffer=new char[size];
+
+            // get file data
+            pbuf->sgetn (buffer,size);
+            inputBuf.close();
+
+            outDATA = (float*)&buffer[0];
+            fScalar = 1.0;
+        }
+         
 
         //cout<<"New array size :" << s32ClassCount << std::endl;
         /*for (int i = 0; i < s32ClassCount; i++)
@@ -270,8 +328,8 @@ for (int idx = 0; idx < images.size(); idx++) {
             pfData[i] = *(outDATA + i) * fScalar;
         }*/
         //int16_t *ps16Data = (MI_IPU_FORMAT_INT16*)OutputTensorVector.astArrayTensors[0].ptTensorData[0];//phyTensorAddr//ptTensorData
-        cv::Mat frame;
-        frame = cv::imread(stProcessedData.pImagePath);
+        
+        
 
         std::string name = stProcessedData.pImagePath;
 
@@ -286,15 +344,88 @@ for (int idx = 0; idx < images.size(); idx++) {
         //cout<<"checkData \n"<<endl;
 
         cv::Mat img = checkData(frame, outDATA, class_list, fScalar, strOutImageName, desc.astMI_OutputTensorDescs[0].u32InnerMostStride/getTypeSYze(desc.astMI_OutputTensorDescs[0].eElmFormat), &programGonfig);
+        
+        //cout<<"trackData \n"<<endl;
+
+        if(has_suffix(images[idx], ".dmp")){
+            delete[] buffer;
+        }
+
         vector<STrack> output_stracks = tracker.update(objects); 
-        trackToImage(img, output_stracks, class_list, tracker);
+
+        if(!has_suffix(images[idx], ".dmp")){
+            trackToImage(img, output_stracks, class_list, tracker);
+        }
+
+        string _outName = programGonfig.path_imgages + _ts + _sl + strOutImageName;
+
+        std::string json_name0 = strOutImageName;
+        unsigned int json_pos0 = json_name0.rfind(".");
+        if (json_pos0 > 0 && json_pos0 < json_name0.size()) {
+            json_name0 = json_name0.substr(0, json_pos0);
+        }
+        json_name0 = json_name0 + "_tracker_in.json";
+        _outName = programGonfig.path_imgages + _js + _sl+ json_name0;
+
+        std::ofstream jfile;
+        jfile.open(_outName, std::ios_base::out);
+        jfile << "[" << std::endl;
+        for (int i = 0; i < objects.size(); i++){
+            if(i!=0){
+                jfile << "," << std::endl;
+            }
+            objTolog(jfile, objects[i]);
+        }
+        jfile << "\n]" << std::endl;
+        jfile.close();
 
 
-        if(programGonfig.out_boxes){
-            string _tmp("/mot_out_img/");
-            string _outName = programGonfig.path_imgages + _tmp + strOutImageName;
-            cv::imwrite(_outName.c_str(), img);
-            cout<<"Save image: "<< strOutImageName.c_str() <<endl;
+        std::string json_name = strOutImageName;
+        unsigned int json_pos = json_name.rfind(".");
+        if (json_pos > 0 && json_pos < json_name.size()) {
+            json_name = json_name.substr(0, json_pos);
+        }
+        json_name = json_name + "_tracker_out.json";
+        _outName = programGonfig.path_imgages + _js + _sl+ json_name;
+
+
+        jfile.open(_outName, std::ios_base::out);
+        jfile << "[" << std::endl;
+
+        for (int i = 0; i < tracker.tracked_stracks.size(); i++){
+            if(i!=0){
+                jfile << "," << std::endl;
+            }
+            trackTolog(jfile, tracker.tracked_stracks[i]);
+        }
+        if(tracker.lost_stracks.size()!=0){
+            jfile << "," << std::endl;
+        }
+        for (int i = 0; i < tracker.lost_stracks.size(); i++){
+            if(i!=0){
+                jfile << "," << std::endl;
+            }
+            trackTolog(jfile, tracker.lost_stracks[i]);
+        }
+        if(tracker.removed_stracks.size() != 0){
+            jfile << "," << std::endl;
+        }
+        for (int i = 0; i < tracker.removed_stracks.size(); i++){
+            if(i!=0){
+                jfile << "," << std::endl;
+            }
+            trackTolog(jfile, tracker.removed_stracks[i]);
+        }
+
+        jfile << "\n]\n" << std::endl;
+        jfile.close();
+
+        _outName = programGonfig.path_imgages + _ts + _sl + strOutImageName;
+        if(!has_suffix(images[idx], ".dmp")){
+            if(programGonfig.out_boxes){
+                cv::imwrite(_outName.c_str(), img);
+                cout<<"Save image: "<< strOutImageName.c_str() <<endl;
+            }
         }
 
 
@@ -305,8 +436,9 @@ for (int idx = 0; idx < images.size(); idx++) {
                 dmp_name = dmp_name.substr(0, dmp_pos);
             }
             dmp_name = dmp_name + ".dmp";
-
-            FILE* fp = fopen(dmp_name.c_str(),"w");
+            _outName = programGonfig.path_imgages + _ds + _sl + dmp_name;
+            cout<<"Make dump: "<< _outName.c_str() <<endl;
+            FILE* fp = fopen(_outName.c_str(),"w");
             fwrite((MI_U8*)OutputTensorVector.astArrayTensors[0].ptTensorData[0], 1, desc.astMI_OutputTensorDescs[0].s32AlignedBufSize, fp);
             fclose(fp);
         }

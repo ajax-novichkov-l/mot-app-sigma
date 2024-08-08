@@ -11,7 +11,7 @@ enum TrackState { New = 0, Tracked, Lost, Removed };
 class STrack
 {
 public:
-	STrack(vector<float> tlwh_, float score, int label);
+	STrack(vector<float> tlwh_, float score, int label, globalConfig *conf);
 	~STrack();
 
 	vector<float> static tlbr_to_tlwh(vector<float> &tlbr);
@@ -33,13 +33,18 @@ public:
 	bool is_activated;
 	int track_id;
 	int state;
-	int classId;
+	int startClassId;
+	int ClassId;
 	vector<float> _tlwh;
 	vector<float> tlwh;
 	vector<float> tlbr;
 	int frame_id;
 	int tracklet_len;
 	int start_frame;
+
+	float track_thresh;
+	float high_thresh;
+	float match_thresh; 
 
 	KAL_MEAN mean;
 	KAL_MEAN mean_prev;

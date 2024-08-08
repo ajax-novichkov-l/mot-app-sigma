@@ -1,6 +1,7 @@
 #pragma once
 
 #include "STrack.h"
+#include "dataType.h"
 
 struct Object
 {
@@ -12,7 +13,7 @@ struct Object
 class BYTETracker
 {
 public:
-	BYTETracker(globalConfig& conf);
+	BYTETracker(globalConfig *conf);
 	~BYTETracker();
 
 	vector<STrack> update(const vector<Object>& objects);
@@ -35,14 +36,14 @@ private:
 	double lapjv(const vector<vector<float> > &cost, vector<int> &rowsol, vector<int> &colsol, 
 		bool extend_cost = false, float cost_limit = LONG_MAX, bool return_cost = true);
 
-private:
+public:
 
 	float track_thresh;
 	float high_thresh;
 	float match_thresh;
 	int frame_id;
 	int max_time_lost;
-
+	globalConfig *conf;
 	vector<STrack> tracked_stracks;
 	vector<STrack> lost_stracks;
 	vector<STrack> removed_stracks;

@@ -1,6 +1,6 @@
 #include "STrack.h"
 
-STrack::STrack(vector<float> tlwh_, float score, int label)
+STrack::STrack(vector<float> tlwh_, float score, int label, globalConfig *conf)
 {
 	_tlwh.resize(4);
 	_tlwh.assign(tlwh_.begin(), tlwh_.end());
@@ -17,7 +17,30 @@ STrack::STrack(vector<float> tlwh_, float score, int label)
 	frame_id = 0;
 	tracklet_len = 0;
 	this->score = score;
-	this->classId = label;
+	this->startClassId = label;
+	this->ClassId = label;
+	switch(this->startClassId){
+		case 0:
+			this->high_thresh = conf->mot_c0_high_thresh;
+			this->match_thresh = conf->mot_c0_match_thresh;
+			this->track_thresh = conf->mot_c0_track_thresh;
+		break;
+		case 1:
+			this->high_thresh = conf->mot_c1_high_thresh;
+			this->match_thresh = conf->mot_c1_match_thresh;
+			this->track_thresh = conf->mot_c1_track_thresh;
+		break;
+		case 2:
+			this->high_thresh = conf->mot_c2_high_thresh;
+			this->match_thresh = conf->mot_c2_match_thresh;
+			this->track_thresh = conf->mot_c2_track_thresh;
+		break;
+		default:
+			this->high_thresh = conf->mot_high_thresh;
+			this->match_thresh = conf->mot_match_thresh;
+			this->track_thresh = conf->mot_track_thresh;
+		break;
+	}
 	start_frame = 0;
 }
 
@@ -88,7 +111,7 @@ void STrack::update(STrack &new_track, int frame_id)
 {
 	this->frame_id = frame_id;
 	this->tracklet_len++;
-
+	this->ClassId = new_track.startClassId;
 	vector<float> xyah = tlwh_to_xyah(new_track.tlwh);
 	DETECTBOX xyah_box;
 	xyah_box[0] = xyah[0];

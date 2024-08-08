@@ -531,20 +531,26 @@ cv::Size draw_label(cv::Mat& input_image, std::string label, int left, int top, 
 }
 
 cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::string> &labels, float ratio, std::string filename, int step, globalConfig *conf ) {
+    
     bool isFile = false;
     std::ofstream file;
 
-    float addRatio = std::min((float)conf->edgeSizeW / (float)inputImg.size().width, (float)conf->edgeSizeH / (float)inputImg.size().height);
+    float addRatio = 1.0;
+
+    if(inputImg.rows != 0){
+        addRatio = std::min((float)conf->edgeSizeW / (float)inputImg.size().width, (float)conf->edgeSizeH / (float)inputImg.size().height);
+    }
     //float addRatioW = min((float)conf->edgeSizeW / (float)inputImg.size().width, (float)conf->edgeSizeH / (float)inputImg.size().height);
 
     //printf("addRatio - %f\n", addRatio);
-    float xRatio = (float)inputImg.cols / ((float)inputImg.cols*addRatio);
-    //printf("xRatio - %f\n", xRatio);
-    float yRatio = (float)inputImg.rows / ((float)inputImg.rows*addRatio);
-    //printf("yRatio - %f\n", yRatio);
+    float xRatio = 1.0;
+    float yRatio = 1.0;
+    if(inputImg.rows != 0){
+        xRatio = (float)inputImg.cols / ((float)inputImg.cols*addRatio);
+        yRatio = (float)inputImg.rows / ((float)inputImg.rows*addRatio);
+    }
     float *data = predictions;
 
-    //const int dimensions = 85;
     const int rows = conf->iterations;
 
     std::vector<int> _classId;
@@ -661,9 +667,11 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
 
 
         //rectangle(inputImg, cv::Point(left, top), cv::Point(left + width, top + height), getColor(_confidence[idx]), THICKNESS);
-        std::string label = cv::format("%.2f", _confidence[idx]);
-        label = labels[_classId[idx]] + ":" + label;
-        draw_label(inputImg, label, left, top-50, width, _confidence[idx]);
+        if(inputImg.rows != 0){
+            std::string label = cv::format("%.2f", _confidence[idx]);
+            label = labels[_classId[idx]] + ":" + label;
+            draw_label(inputImg, label, left, top-50, width, _confidence[idx]);
+        }
         
         if(conf->out_nms){
             file_nms << labels[_classId[idx]] << " " << _confidence[idx] << " " << left << " " << top << " " << width << " " << height << std::endl;
@@ -1117,7 +1125,7 @@ static void parse_images_dir(const std::string& base_path, std::vector<std::stri
             //std::cout<<"name_reg - :"<<ptr->d_name<<std::endl;
         if(strcmp(".", ptr->d_name) == 0)
             continue;
-        if(has_suffix(ptr->d_name, ".jpg") || has_suffix(ptr->d_name, ".bmp") || has_suffix(ptr->d_name, ".png")){
+        if(has_suffix(ptr->d_name, ".jpg") || has_suffix(ptr->d_name, ".bmp") || has_suffix(ptr->d_name, ".png") || has_suffix(ptr->d_name, ".dmp")){
             std::string path = base_path_str + ptr->d_name;
             file_path.push_back(path);
         }
@@ -1274,7 +1282,7 @@ void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::ve
         label = cv::format("score-%.2f", stracks[i].score);
         h += (_size.height+1);
         _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
-        label = cv::format("%s", labels[stracks[i].classId].c_str());
+        label = cv::format("%s", labels[stracks[i].startClassId].c_str());
         h += (_size.height+1);
         _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
 
@@ -1306,4 +1314,43 @@ void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::ve
 
 		//}
 	} 
+}
+
+void trackTolog(std::ofstream &jfile, STrack &track){
+    jfile << "\t{\n" 
+        << "\t\t\"track_id\": " << track.track_id << ",\n"
+        << "\t\t\"start_category_id\": " << track.startClassId << ",\n"
+        << "\t\t\"bbox\": [\n"
+            << "\t\t\t" << track.tlwh[0]<< ",\n"
+            << "\t\t\t" << track.tlwh[1] << ",\n"
+            << "\t\t\t" << track.tlwh[2] << ",\n"
+            << "\t\t\t" << track.tlwh[3] << ",\n"
+        << "\t\t],\n"
+        << "\t\t\"start frame\": " << track.start_frame << ",\n"
+        << "\t\t\"current frame\": " << track.frame_id << ",\n"
+        << "\t\t\"score\": " << track.score << ",\n"
+        << "\t\t\"Vx\": " << track.mean(4) << ",\n"
+        << "\t\t\"Vy\": " << track.mean(5) << ",\n"
+        << "\t\t\"Va\": " << track.mean(6) << ",\n"
+        << "\t\t\"Vh\": " << track.mean(7) << ",\n"
+        << "\t\t\"tracklet_len\": " << track.tracklet_len << ",\n"
+        << "\t\t\"is_activated\": " << track.is_activated << ",\n"
+        << "\t\t\"state\": " << track.state << ",\n"
+        << "\t\t\"category_id\": " << track.ClassId << "\n"
+        << "\t}";
+    //<< std::endl;
+}
+
+void objTolog(std::ofstream &jfile, Object &object){
+    jfile << "\t{\n" 
+        << "\t\t\"score\": " << object.prob << ",\n"
+        << "\t\t\"category_id\": " << object.label << ",\n"
+        << "\t\t\"bbox\": [\n"
+            << "\t\t\t" << object.rect.x << ",\n"
+            << "\t\t\t" << object.rect.y << ",\n"
+            << "\t\t\t" << object.rect.width << ",\n"
+            << "\t\t\t" << object.rect.height << ",\n"
+        << "\t\t]\n"
+        << "\t}";
+    //<< std::endl;
 }
