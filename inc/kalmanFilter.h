@@ -14,16 +14,20 @@ namespace byte_kalman
 		KAL_DATA update(const KAL_MEAN& mean,
 			const KAL_COVA& covariance,
 			const DETECTBOX& measurement);
+		COV_R covToImage(KAL_MEAN& mean, KAL_COVA& covariance);
 
 		Eigen::Matrix<float, 1, -1> gating_distance(
 			const KAL_MEAN& mean,
 			const KAL_COVA& covariance,
 			const std::vector<DETECTBOX>& measurements);
-
+		float getAngle(KAL_MEAN& mean, KAL_COVA& covariance, float r1);
 	private:
 		Eigen::Matrix<float, 8, 8, Eigen::RowMajor> _motion_mat;
 		Eigen::Matrix<float, 4, 8, Eigen::RowMajor> _update_mat;
 		float _std_weight_position;
-		float _std_weight_velocity;
+		float _std_weight_velocity_x;
+		float _std_weight_velocity_y;
+		float _std_weight_velocity_a;
+		float _std_weight_velocity_h;
 	};
 }

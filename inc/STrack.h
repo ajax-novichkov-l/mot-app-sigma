@@ -45,10 +45,11 @@ public:
 	float track_thresh;
 	float high_thresh;
 	float match_thresh; 
-
+	float angle;
 	KAL_MEAN mean;
 	KAL_MEAN mean_prev;
 	KAL_COVA covariance;
+	COV_R toDraw;
 	float score;
 
 //private:

@@ -259,7 +259,7 @@ MI_SYS_Init();
     std::ifstream inputBuf;
     cv::Mat frame;
 for (int idx = 0; idx < images.size(); idx++) {
-        std::cout << idx + 1 << " / " << images.size() << '\t';
+        std::cout << "\t" << idx + 1 << " / " << images.size() << '\n';
         stProcessedData.pImagePath = images[idx];
 
         if(!has_suffix(images[idx], ".dmp")){

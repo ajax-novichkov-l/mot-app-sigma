@@ -535,6 +535,8 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
     bool isFile = false;
     std::ofstream file;
 
+    //std::ofstream file_float;
+
     float addRatio = 1.0;
 
     if(inputImg.rows != 0){
@@ -568,7 +570,13 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
         file.open(name, std::ios_base::out);
         isFile = true;
     }
-
+    std::string name = filename;
+            unsigned int pos = name.rfind(".");
+        if (pos > 0 && pos < name.size()) {
+            name = name.substr(0, pos);
+        }
+        name = name + ".float";
+    //file_float.open(name, std::ios_base::out); 
     //printf("labels size - %d \n", labels.size());
 
     //objects.resize(rows); //indices.size()
@@ -584,7 +592,7 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
            std::cout << "index - " << i << std::endl;
            std::cout << "confidence - " << confidence << std::endl;
         }*/
-
+        //file_float << *(data + 0) << " "<< *(data + 1) << " "<< *(data + 2) << " "<< *(data + 3) << " " << *(data + 4) << " " << *(data + 5) << " "<< *(data + 6) << " "<< *(data + 7) << std::endl;
         if (confidence > conf->threshold_confidence) {// && (confidence <= 1.0)
 
             float* new_scores = new float[labels.size()];
@@ -597,7 +605,7 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
             double max_class_score;
             minMaxLoc(scores, 0, &max_class_score, 0, &class_id);
             if (max_class_score > conf->threshold_main) {
-
+                confidence *= max_class_score;
                 _confidence.push_back(confidence);
                 _classId.push_back(class_id.x);
 
@@ -687,6 +695,7 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
     if(isFile){
         file.close();
     }
+    //file_float.close();
     //printf("return part \n");
     return inputImg;
 }
@@ -1309,8 +1318,26 @@ void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::ve
     	//putText(inputImg, _label, Point(tlwh[0], tlwh[1] - 5), fontFace, fontScale, Scalar(0, 255, 0), 2, LINE_AA);
         rectangle(inputImg, Rect(tlwh[0], tlwh[1], tlwh[2], tlwh[3]), getColor(stracks[i].score), 1);
 
-        cv::drawMarker(inputImg, Point2f(stracks[i].mean(0), stracks[i].mean(1)), Scalar(255, 0, 0), 0, 20, 1);
+        cv::drawMarker(inputImg, Point2f(stracks[i].mean(0), stracks[i].mean(1)), Scalar(255, 153, 51), 0, 20, 1);
+        label = cv::format("r1-%.2f", stracks[i].toDraw.first);
+        h += (_size.height+1);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
+        label = cv::format("r2-%.2f", stracks[i].toDraw.second);
+        h += (_size.height+1);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
+        label = cv::format("angle-%.2f", stracks[i].angle);
+        h += (_size.height+1);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
+        cv::ellipse(inputImg, Point2f(stracks[i].mean(0), stracks[i].mean(1)), Size2f(stracks[i].toDraw.first, stracks[i].toDraw.second), stracks[i].angle, 0, 360, Scalar(255, 153, 51), 1, 0, 0);
+		std::string sep = "\n++++++++++++++++++++++++++++++++++++++\n";
+        Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+        std::cout << stracks[i].mean.format(CleanFmt) << sep;
+		std::cout << stracks[i].covariance.format(CleanFmt) << sep;
+        std::cout << "r1 - " << stracks[i].toDraw.first << std::endl;
+        std::cout << "r2 - " << stracks[i].toDraw.second << sep;
         cv::drawMarker(inputImg, Point2f(stracks[i].mean_prev(0), stracks[i].mean_prev(1)), Scalar(0, 0, 255), 0, 20, 1);
+
+
 
 		//}
 	} 
@@ -1324,7 +1351,7 @@ void trackTolog(std::ofstream &jfile, STrack &track){
             << "\t\t\t" << track.tlwh[0]<< ",\n"
             << "\t\t\t" << track.tlwh[1] << ",\n"
             << "\t\t\t" << track.tlwh[2] << ",\n"
-            << "\t\t\t" << track.tlwh[3] << ",\n"
+            << "\t\t\t" << track.tlwh[3] << "\n"
         << "\t\t],\n"
         << "\t\t\"start frame\": " << track.start_frame << ",\n"
         << "\t\t\"current frame\": " << track.frame_id << ",\n"
@@ -1349,7 +1376,7 @@ void objTolog(std::ofstream &jfile, Object &object){
             << "\t\t\t" << object.rect.x << ",\n"
             << "\t\t\t" << object.rect.y << ",\n"
             << "\t\t\t" << object.rect.width << ",\n"
-            << "\t\t\t" << object.rect.height << ",\n"
+            << "\t\t\t" << object.rect.height << "\n"
         << "\t\t]\n"
         << "\t}";
     //<< std::endl;

@@ -138,6 +138,7 @@ vector<STrack> BYTETracker::update(const vector<Object>& objects){
 	matches.clear();
 	vector<int> u_unconfirmed;
 	u_detection.clear();
+	
 	linear_assignment(dists, dist_size, dist_size_size, 0.7, matches, u_unconfirmed, u_detection);
 
 	for (int i = 0; i < matches.size(); i++){
