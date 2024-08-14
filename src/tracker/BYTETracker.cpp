@@ -9,6 +9,7 @@ BYTETracker::BYTETracker(globalConfig *conf){
 	frame_id = 0;
 	max_time_lost = conf->mot_max_time_lost;
 	this->conf = conf;
+	this->kalman_filter.setupRatio(conf);
 }
 
 BYTETracker::~BYTETracker(){

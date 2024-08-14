@@ -91,6 +91,27 @@ int main(int argc,char *argv[]){
     cout << "mot_c2_match_thresh - " << programGonfig.mot_c2_match_thresh  << endl; 
 
 
+    programGonfig.mot_weight_position_x = iniparser_getdouble(pstDict, ":mot_weight_position_x", 0.0);
+    cout << "mot_weight_position_x - " << programGonfig.mot_weight_position_x  << endl; 
+    programGonfig.mot_weight_position_y = iniparser_getdouble(pstDict, ":mot_weight_position_y", 0.0);
+    cout << "mot_weight_position_y - " << programGonfig.mot_weight_position_y  << endl;
+    programGonfig.mot_weight_position_a = iniparser_getdouble(pstDict, ":mot_weight_position_a", 0.0);
+    cout << "mot_weight_position_a - " << programGonfig.mot_weight_position_a  << endl;  
+    programGonfig.mot_weight_position_h = iniparser_getdouble(pstDict, ":mot_weight_position_h", 0.0);
+    cout << "mot_weight_position_h - " << programGonfig.mot_weight_position_h  << endl;
+
+    programGonfig.mot_weight_velocity_x = iniparser_getdouble(pstDict, ":mot_weight_velocity_x", 0.0);
+    cout << "mot_weight_velocity_x - " << programGonfig.mot_weight_velocity_x  << endl; 
+    programGonfig.mot_weight_velocity_y = iniparser_getdouble(pstDict, ":mot_weight_velocity_y", 0.0);
+    cout << "mot_weight_velocity_y - " << programGonfig.mot_weight_velocity_y  << endl; 
+    programGonfig.mot_weight_velocity_a = iniparser_getdouble(pstDict, ":mot_weight_velocity_a", 0.0);
+    cout << "mot_weight_velocity_a - " << programGonfig.mot_weight_velocity_a  << endl; 
+    programGonfig.mot_weight_velocity_h = iniparser_getdouble(pstDict, ":mot_weight_velocity_h", 0.0);
+    cout << "mot_weight_velocity_h - " << programGonfig.mot_weight_velocity_h  << endl; 
+
+    programGonfig.mot_weight_position_i_a = iniparser_getdouble(pstDict, ":mot_weight_position_i_a", 0.0);
+    cout << "mot_weight_position_i_a - " << programGonfig.mot_weight_position_i_a  << endl; 
+
     programGonfig.mot_fps = iniparser_getint(pstDict, ":mot_fps", 0);
     cout << "mot_fps - " << programGonfig.mot_fps  << endl; 
     programGonfig.mot_max_time_lost = iniparser_getint(pstDict, ":mot_max_time_lost", 0);

@@ -8,7 +8,7 @@ namespace byte_kalman
 	{
 		int ndim = 4;
 		double dt = 1.;
-		std::string sep = "\n----------------------------------------\n";
+		//std::string sep = "\n----------------------------------------\n";
 
 		_motion_mat = Eigen::MatrixXf::Identity(8, 8);
 		for (int i = 0; i < ndim; i++) {
@@ -16,15 +16,25 @@ namespace byte_kalman
 		}
 		_update_mat = Eigen::MatrixXf::Identity(4, 8);
 
-		this->_std_weight_position = 0.01;
-		this->_std_weight_velocity_x = 0.08;
-		this->_std_weight_velocity_y = 0.08;
-		this->_std_weight_velocity_a = 0.08;
-		this->_std_weight_velocity_h = 0.08;
-
-		Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+		//Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
 		//std::cout << _motion_mat.format(CleanFmt) << sep;
 		//std::cout << _update_mat.format(CleanFmt) << sep;
+	}
+
+	void KalmanFilter::setupRatio(globalConfig *conf){
+		this->_std_weight_position_x = (float)conf->mot_weight_position_x;
+		this->_std_weight_position_y = (float)conf->mot_weight_position_y;
+		this->_std_weight_position_a = (float)conf->mot_weight_position_a;
+		this->_std_weight_position_h = (float)conf->mot_weight_position_h;
+
+		this->_std_weight_velocity_x = (float)conf->mot_weight_velocity_x;
+		this->_std_weight_velocity_y = (float)conf->mot_weight_velocity_y;
+		this->_std_weight_velocity_a = (float)conf->mot_weight_velocity_a;
+		this->_std_weight_velocity_h = (float)conf->mot_weight_velocity_h;
+		/*std::cout << "_std_weight_position_x - " << this->_std_weight_position_x << std::endl;
+		std::cout << "_std_weight_position_y - " << this->_std_weight_position_y << std::endl;
+		std::cout << "_std_weight_position_a - " << this->_std_weight_position_a << std::endl;
+		std::cout << "_std_weight_position_h - " << this->_std_weight_position_h << std::endl;*/
 	}
 
 	KAL_DATA KalmanFilter::initiate(const DETECTBOX &measurement)
@@ -40,10 +50,10 @@ namespace byte_kalman
 		}
 
 		KAL_MEAN std;
-		std(0) = 2 * _std_weight_position * measurement[3];
-		std(1) = 2 * _std_weight_position * measurement[3];
+		std(0) = 2 * _std_weight_position_x * measurement[3];
+		std(1) = 2 * _std_weight_position_y * measurement[3];
 		std(2) = 1e-2;
-		std(3) = 2 * _std_weight_position * measurement[3];
+		std(3) = 2 * _std_weight_position_h * measurement[3];
 		std(4) = 10 * _std_weight_velocity_x * measurement[3];
 		std(5) = 10 * _std_weight_velocity_y * measurement[3];
 		std(6) = 1e-5;
@@ -55,32 +65,31 @@ namespace byte_kalman
 	}
 
 	void KalmanFilter::predict(KAL_MEAN &mean, KAL_COVA &covariance){
-		std::string sep = "\n*************************************************\n";
-        Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+		//std::string sep = "\n*************************************************\n";
+        //Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
 		//revise the data;
 		DETECTBOX std_pos;
-		std_pos << _std_weight_position * mean(3), _std_weight_position * mean(3), 0.01, _std_weight_position * mean(3);
+		std_pos << _std_weight_position_x * mean(3), _std_weight_position_y * mean(3), _std_weight_position_a, _std_weight_position_h * mean(3);
 		DETECTBOX std_vel;
-		std_vel << _std_weight_velocity_x * mean(4), _std_weight_velocity_y * mean(5), 0.00001, _std_weight_velocity_h * mean(3);
+		std_vel << _std_weight_velocity_x * mean(3), _std_weight_velocity_y * mean(3), _std_weight_velocity_a, _std_weight_velocity_h * mean(3);
 		KAL_MEAN tmp;
 		tmp.block<1, 4>(0, 0) = std_pos;
 		tmp.block<1, 4>(0, 4) = std_vel;
 		tmp = tmp.array().square();
 		KAL_COVA motion_cov = tmp.asDiagonal();
 		KAL_MEAN mean1 = this->_motion_mat * mean.transpose();
-		std::cout << mean1.format(CleanFmt) << sep;
+		//std::cout << mean1.format(CleanFmt) << sep;
 		KAL_COVA covariance1 = this->_motion_mat * covariance *(_motion_mat.transpose());
-		std::cout << covariance1.format(CleanFmt) << sep;
+		//std::cout << covariance1.format(CleanFmt) << sep;
 		covariance1 += motion_cov;
 		mean = mean1;
 		covariance = covariance1;
-        std::cout << covariance.format(CleanFmt) << sep;
+        //std::cout << covariance.format(CleanFmt) << sep;
 	}
 
-	KAL_HDATA KalmanFilter::project(const KAL_MEAN &mean, const KAL_COVA &covariance)
-	{
+	KAL_HDATA KalmanFilter::project(const KAL_MEAN &mean, const KAL_COVA &covariance){
 		DETECTBOX std;
-		std << _std_weight_position * mean(3), _std_weight_position * mean(3), 0.1, _std_weight_position * mean(3);
+		std << _std_weight_position_x * mean(3), _std_weight_position_y * mean(3), _std_weight_position_i_a, _std_weight_position_h * mean(3);
 		KAL_HMEAN mean1 = _update_mat * mean.transpose();
 		KAL_HCOVA covariance1 = _update_mat * covariance * (_update_mat.transpose());
 		Eigen::Matrix<float, 4, 4> diag = std.asDiagonal();
@@ -90,20 +99,27 @@ namespace byte_kalman
 		return std::make_pair(mean1, covariance1);
 	}
 
-	KAL_DATA
-		KalmanFilter::update(
-			const KAL_MEAN &mean,
-			const KAL_COVA &covariance,
-			const DETECTBOX &measurement)
-	{
+	/*DETECTBOX KalmanFilter::getDelta(const KAL_MEAN &mean, const DETECTBOX &measurement){
+
+	}*/
+
+	KAL_DATA KalmanFilter::update(const KAL_MEAN &mean, const KAL_COVA &covariance, const DETECTBOX &measurement){
 		KAL_HDATA pa = project(mean, covariance);
 		KAL_HMEAN projected_mean = pa.first;
 		KAL_HCOVA projected_cov = pa.second;
+		std::string sep = "\n*************************************************\n";
+        Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
 
 		Eigen::Matrix<float, 4, 8> B = (covariance * (_update_mat.transpose())).transpose();
 		Eigen::Matrix<float, 8, 4> kalman_gain = (projected_cov.llt().solve(B)).transpose(); // eg.8x4
-		Eigen::Matrix<float, 1, 4> innovation = measurement - projected_mean; //eg.1x4
-		auto tmp = innovation * (kalman_gain.transpose());
+		std::cout << kalman_gain.format(CleanFmt) << sep;
+		Eigen::Matrix<float, 1, 4> _innovation = measurement - projected_mean; //eg.1x4
+		std::cout << _innovation.format(CleanFmt) << sep;
+		auto tmp = _innovation * (kalman_gain.transpose());
+		std::cout << tmp.format(CleanFmt) << sep;
+		this->innovation = tmp;
+
+		std::cout << tmp.format(CleanFmt) << sep;
 		KAL_MEAN new_mean = (mean.array() + tmp.array()).matrix();
 		KAL_COVA new_covariance = covariance - kalman_gain * projected_cov*(kalman_gain.transpose());
 		return std::make_pair(new_mean, new_covariance);

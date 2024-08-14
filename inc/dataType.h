@@ -66,6 +66,16 @@ typedef struct _globalConfig{
 	double mot_c2_high_thresh;
 	double mot_c2_match_thresh;
 
+	double mot_weight_position_x;//=0.01;
+	double mot_weight_position_y;//=0.01;
+	double mot_weight_position_a;//=0.01;
+	double mot_weight_position_i_a;//=0.01;
+	double mot_weight_position_h;//=0.01;
+	double mot_weight_velocity_x;//=0.08;
+	double mot_weight_velocity_y;//=0.08;
+	double mot_weight_velocity_a;//=0.08;
+	double mot_weight_velocity_h;//=0.08;
+
 	unsigned int mot_fps;
 	unsigned int mot_max_time_lost;
 }globalConfig;

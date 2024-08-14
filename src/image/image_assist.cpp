@@ -500,10 +500,15 @@ cv::Size draw_label(cv::Mat& input_image, std::string label, int left, int top, 
     if((left+label_size.width*scale)>input_image.size().width){
         left = input_image.size().width - label_size.width*scale;
     }
-    if(left <=0)
+    if(left <= 0)
     left=1;
         if(top <=0)
     top=1;
+
+    if((label_size.height*scale+top)>input_image.size().height){
+        top = input_image.size().height - label_size.height*scale;
+    }
+
 
     cv::Point tlc = cv::Point(left, top);
 
@@ -1276,6 +1281,11 @@ std::string string_format( const std::string& format, Args ... args )
     return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
 }
 
+/*bool isHeigthChecked(cv::Mat &inputImg, int h){
+    if()
+}*/
+
+
 void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::vector<std::string> &labels, BYTETracker &tracker){
     int h = 0;
     for (int i = 0; i < stracks.size(); i++){
@@ -1286,29 +1296,30 @@ void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::ve
 		Scalar s = tracker.get_color(stracks[i].track_id);
 // class - %s", labels[stracks[i].classId].c_str()
         h = tlwh[1]+1;
+
         string label = cv::format("obj - %d", stracks[i].track_id);
         cv::Size _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);//- (int)((float)height*(_confidence[idx])) 
-        label = cv::format("score-%.2f", stracks[i].score);
+        label = cv::format("score - %.2f", stracks[i].score);
         h += (_size.height+1);
         _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
         label = cv::format("%s", labels[stracks[i].startClassId].c_str());
         h += (_size.height+1);
         _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
 
-        label = cv::format("state-%d", stracks[i].state);
+        /*label = cv::format("state-%d", stracks[i].state);
         h += (_size.height+1);
-        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);*/
 
-        label = cv::format("Vx-%.2f", stracks[i].mean(4));
+        label = cv::format("Vx - %.2f", stracks[i].mean(4));
         h += (_size.height+1);
         _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
-        label = cv::format("Vy-%.2f", stracks[i].mean(5));
+        label = cv::format("Vy - %.2f", stracks[i].mean(5));
         h += (_size.height+1);
         _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
-        label = cv::format("Va-%.2f", stracks[i].mean(6));
+        label = cv::format("Va - %.2f", stracks[i].mean(6));
         h += (_size.height+1);
         _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
-        label = cv::format("Vh-%.2f", stracks[i].mean(7));
+        label = cv::format("Vh - %.2f", stracks[i].mean(7));
         h += (_size.height+1);
         _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
 
@@ -1318,8 +1329,8 @@ void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::ve
     	//putText(inputImg, _label, Point(tlwh[0], tlwh[1] - 5), fontFace, fontScale, Scalar(0, 255, 0), 2, LINE_AA);
         rectangle(inputImg, Rect(tlwh[0], tlwh[1], tlwh[2], tlwh[3]), getColor(stracks[i].score), 1);
 
-        cv::drawMarker(inputImg, Point2f(stracks[i].mean(0), stracks[i].mean(1)), Scalar(255, 153, 51), 0, 20, 1);
-        label = cv::format("r1-%.2f", stracks[i].toDraw.first);
+        cv::drawMarker(inputImg, Point2f(stracks[i].mean(0), stracks[i].mean(1)), Scalar(51, 153, 255), 0, 20, 1);
+        /*label = cv::format("r1-%.2f", stracks[i].toDraw.first);
         h += (_size.height+1);
         _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
         label = cv::format("r2-%.2f", stracks[i].toDraw.second);
@@ -1327,8 +1338,22 @@ void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::ve
         _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
         label = cv::format("angle-%.2f", stracks[i].angle);
         h += (_size.height+1);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);*/
+
+        label = cv::format("dx - %.5f", stracks[i].kalman_filter.innovation(0,0));
+        h += (_size.height+1);
         _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
-        cv::ellipse(inputImg, Point2f(stracks[i].mean(0), stracks[i].mean(1)), Size2f(stracks[i].toDraw.first, stracks[i].toDraw.second), stracks[i].angle, 0, 360, Scalar(255, 153, 51), 1, 0, 0);
+        label = cv::format("dy - %.5f", stracks[i].kalman_filter.innovation(0,1));
+        h += (_size.height+1);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
+        label = cv::format("da - %.5f", stracks[i].kalman_filter.innovation(0,2));
+        h += (_size.height+1);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
+        label = cv::format("dh - %.5f", stracks[i].kalman_filter.innovation(0,3));
+        h += (_size.height+1);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
+
+        cv::ellipse(inputImg, Point2f(stracks[i].mean(0), stracks[i].mean(1)), Size2f(stracks[i].toDraw.first, stracks[i].toDraw.second), stracks[i].angle, 0, 360, Scalar(51, 153, 255), 1, 0, 0);
 		std::string sep = "\n++++++++++++++++++++++++++++++++++++++\n";
         Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
         std::cout << stracks[i].mean.format(CleanFmt) << sep;
@@ -1363,6 +1388,12 @@ void trackTolog(std::ofstream &jfile, STrack &track){
         << "\t\t\"tracklet_len\": " << track.tracklet_len << ",\n"
         << "\t\t\"is_activated\": " << track.is_activated << ",\n"
         << "\t\t\"state\": " << track.state << ",\n"
+        << "\t\t\"delta\": [\n"
+            << "\t\t\t" << track.kalman_filter.innovation(0, 1) << ",\n"
+            << "\t\t\t" << track.kalman_filter.innovation(0, 2) << ",\n"
+            << "\t\t\t" << track.kalman_filter.innovation(0, 3) << ",\n"
+            << "\t\t\t" << track.kalman_filter.innovation(0, 4) << "\n"
+        << "\t\t],\n"
         << "\t\t\"category_id\": " << track.ClassId << "\n"
         << "\t}";
     //<< std::endl;

@@ -122,6 +122,7 @@ void STrack::update(STrack &new_track, int frame_id)
 	auto mc = this->kalman_filter.update(this->mean, this->covariance, xyah_box);
 	this->toDraw = this->kalman_filter.covToImage(this->mean, this->covariance);
 	this->angle = this->kalman_filter.getAngle(this->mean, this->covariance, this->toDraw.first);
+	//this->delta = this->kalman_filter.getDelta(this->mean, this->covariance, xyah_box);
 	this->mean_prev = this->mean;
 	this->mean = mc.first;
 	this->covariance = mc.second;
