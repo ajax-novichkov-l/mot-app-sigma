@@ -500,15 +500,15 @@ cv::Size draw_label(cv::Mat& input_image, std::string label, int left, int top, 
     if((left+label_size.width*scale)>input_image.size().width){
         left = input_image.size().width - label_size.width*scale;
     }
-    if(left <= 0)
-    left=1;
-        if(top <=0)
-    top=1;
 
     if((label_size.height*scale+top)>input_image.size().height){
         top = input_image.size().height - label_size.height*scale;
     }
 
+    if(left <= 0)
+    left=1;
+        if(top <=0)
+    top=1;
 
     cv::Point tlc = cv::Point(left, top);
 
@@ -521,15 +521,13 @@ cv::Size draw_label(cv::Mat& input_image, std::string label, int left, int top, 
     //printf("rectangle start\n");
     //cv::rectangle(input_image, tlc, brc, cv::Scalar(255, 255, 255), cv::FILLED);
 
-    
-    cv::Mat lab = input_image(cv::Rect(tlc, brc));
-    cv::Mat color(lab.size(), CV_8UC3, cv::Scalar(0, 0, 0)); 
-    double alpha = 0.5;
-    cv::addWeighted(color, alpha, lab, 1.0 - alpha , 0.0, lab);
-
-    //printf("rectangle end\n");
-    ///("putText\n");
-    cv::putText(input_image, label, cv::Point(left, top + (int)(label_size.height*scale)), FONT_FACE, scale, getColor(prc), THICKNESS);
+    if(brc.y < input_image.size().height){
+        cv::Mat lab = input_image(cv::Rect(tlc, brc));
+        cv::Mat color(lab.size(), CV_8UC3, cv::Scalar(0, 0, 0)); 
+        double alpha = 0.5;
+        cv::addWeighted(color, alpha, lab, 1.0 - alpha , 0.0, lab);
+        cv::putText(input_image, label, cv::Point(left, top + (int)(label_size.height*scale)), FONT_FACE, scale, getColor(prc), THICKNESS);
+    }
     label_size.width *= (float)scale;
     label_size.height *= (float)scale;
     return label_size;
@@ -681,9 +679,11 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
 
         //rectangle(inputImg, cv::Point(left, top), cv::Point(left + width, top + height), getColor(_confidence[idx]), THICKNESS);
         if(inputImg.rows != 0){
-            std::string label = cv::format("%.2f", _confidence[idx]);
-            label = labels[_classId[idx]] + ":" + label;
-            draw_label(inputImg, label, left, top-50, width, _confidence[idx]);
+            if((top-25) > 0){
+                std::string label = cv::format("%.2f", _confidence[idx]);
+                label = labels[_classId[idx]] + ":" + label;
+                draw_label(inputImg, label, left, top-25, width, _confidence[idx]);
+            }
         }
         
         if(conf->out_nms){
@@ -1310,7 +1310,7 @@ void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::ve
         h += (_size.height+1);
         _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);*/
 
-        label = cv::format("Vx - %.2f", stracks[i].mean(4));
+        /*label = cv::format("Vx - %.2f", stracks[i].mean(4));
         h += (_size.height+1);
         _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
         label = cv::format("Vy - %.2f", stracks[i].mean(5));
@@ -1321,7 +1321,7 @@ void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::ve
         _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
         label = cv::format("Vh - %.2f", stracks[i].mean(7));
         h += (_size.height+1);
-        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);*/
 
 
         //int fontFace = cv::FONT_HERSHEY_DUPLEX, fontScale = _label.size() / 10;
@@ -1340,7 +1340,7 @@ void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::ve
         h += (_size.height+1);
         _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);*/
 
-        label = cv::format("dx - %.5f", stracks[i].kalman_filter.innovation(0,0));
+        /*label = cv::format("dx - %.5f", stracks[i].kalman_filter.innovation(0,0));
         h += (_size.height+1);
         _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
         label = cv::format("dy - %.5f", stracks[i].kalman_filter.innovation(0,1));
@@ -1351,15 +1351,15 @@ void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::ve
         _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
         label = cv::format("dh - %.5f", stracks[i].kalman_filter.innovation(0,3));
         h += (_size.height+1);
-        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);*/
 
         cv::ellipse(inputImg, Point2f(stracks[i].mean(0), stracks[i].mean(1)), Size2f(stracks[i].toDraw.first, stracks[i].toDraw.second), stracks[i].angle, 0, 360, Scalar(51, 153, 255), 1, 0, 0);
-		std::string sep = "\n++++++++++++++++++++++++++++++++++++++\n";
+		/*std::string sep = "\n++++++++++++++++++++++++++++++++++++++\n";
         Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
         std::cout << stracks[i].mean.format(CleanFmt) << sep;
 		std::cout << stracks[i].covariance.format(CleanFmt) << sep;
         std::cout << "r1 - " << stracks[i].toDraw.first << std::endl;
-        std::cout << "r2 - " << stracks[i].toDraw.second << sep;
+        std::cout << "r2 - " << stracks[i].toDraw.second << sep;*/
         cv::drawMarker(inputImg, Point2f(stracks[i].mean_prev(0), stracks[i].mean_prev(1)), Scalar(0, 0, 255), 0, 20, 1);
 
 

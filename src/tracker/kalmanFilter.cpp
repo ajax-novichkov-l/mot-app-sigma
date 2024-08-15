@@ -107,19 +107,19 @@ namespace byte_kalman
 		KAL_HDATA pa = project(mean, covariance);
 		KAL_HMEAN projected_mean = pa.first;
 		KAL_HCOVA projected_cov = pa.second;
-		std::string sep = "\n*************************************************\n";
-        Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+		//std::string sep = "\n*************************************************\n";
+        //Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
 
 		Eigen::Matrix<float, 4, 8> B = (covariance * (_update_mat.transpose())).transpose();
 		Eigen::Matrix<float, 8, 4> kalman_gain = (projected_cov.llt().solve(B)).transpose(); // eg.8x4
-		std::cout << kalman_gain.format(CleanFmt) << sep;
+		//std::cout << kalman_gain.format(CleanFmt) << sep;
 		Eigen::Matrix<float, 1, 4> _innovation = measurement - projected_mean; //eg.1x4
-		std::cout << _innovation.format(CleanFmt) << sep;
+		//std::cout << _innovation.format(CleanFmt) << sep;
 		auto tmp = _innovation * (kalman_gain.transpose());
-		std::cout << tmp.format(CleanFmt) << sep;
+		//std::cout << tmp.format(CleanFmt) << sep;
 		this->innovation = tmp;
 
-		std::cout << tmp.format(CleanFmt) << sep;
+		//std::cout << tmp.format(CleanFmt) << sep;
 		KAL_MEAN new_mean = (mean.array() + tmp.array()).matrix();
 		KAL_COVA new_covariance = covariance - kalman_gain * projected_cov*(kalman_gain.transpose());
 		return std::make_pair(new_mean, new_covariance);

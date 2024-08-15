@@ -372,11 +372,15 @@ for (int idx = 0; idx < images.size(); idx++) {
             delete[] buffer;
         }
 
+        static struct  timeval    tv_start;
+        static struct  timeval    tv_end;
+        gettimeofday(&tv_start,NULL);
+
         vector<STrack> output_stracks = tracker.update(objects); 
 
-        if(!has_suffix(images[idx], ".dmp")){
-            trackToImage(img, output_stracks, class_list, tracker);
-        }
+        gettimeofday(&tv_end,NULL);
+        int elasped_time = (tv_end.tv_sec-tv_start.tv_sec)*1000+(tv_end.tv_usec-tv_start.tv_usec)/1000;
+        std::cout << "elasped_time - " << elasped_time << std::endl;
 
         string _outName = programGonfig.path_imgages + _ts + _sl + strOutImageName;
 
@@ -444,6 +448,10 @@ for (int idx = 0; idx < images.size(); idx++) {
         _outName = programGonfig.path_imgages + _ts + _sl + strOutImageName;
         if(!has_suffix(images[idx], ".dmp")){
             if(programGonfig.out_boxes){
+                trackToImage(img, output_stracks, class_list, tracker);
+
+                string label = cv::format("time - %d", elasped_time);
+                draw_label(img, label, 20, 20, 100, 0.98);
                 cv::imwrite(_outName.c_str(), img);
                 cout<<"Save image: "<< strOutImageName.c_str() <<endl;
             }
