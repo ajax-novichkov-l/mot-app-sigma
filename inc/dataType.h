@@ -20,6 +20,7 @@ typedef Eigen::Matrix<float, 4, 4, Eigen::RowMajor> KAL_HCOVA;
 using KAL_DATA = std::pair<KAL_MEAN, KAL_COVA>;
 using KAL_HDATA = std::pair<KAL_HMEAN, KAL_HCOVA>;
 using COV_R = std::pair<float, float>;
+using TL = std::pair<float, float>;
 
 //main
 using RESULT_DATA = std::pair<int, DETECTBOX>;

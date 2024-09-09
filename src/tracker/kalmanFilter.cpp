@@ -125,12 +125,7 @@ namespace byte_kalman
 		return std::make_pair(new_mean, new_covariance);
 	}
 
-	Eigen::Matrix<float, 1, -1>
-		KalmanFilter::gating_distance(
-			const KAL_MEAN &mean,
-			const KAL_COVA &covariance,
-			const std::vector<DETECTBOX> &measurements)
-	{
+	Eigen::Matrix<float, 1, -1> KalmanFilter::gating_distance(const KAL_MEAN &mean, const KAL_COVA &covariance, const std::vector<DETECTBOX> &measurements){
 		KAL_HDATA pa = this->project(mean, covariance);
 		KAL_HMEAN mean1 = pa.first;
 		KAL_HCOVA covariance1 = pa.second;

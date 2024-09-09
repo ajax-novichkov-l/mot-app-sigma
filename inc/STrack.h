@@ -19,6 +19,7 @@ public:
 	void static_tlwh();
 	void static_tlbr();
 	vector<float> tlwh_to_xyah(vector<float> tlwh_tmp);
+	void xyah_to_tlwh();
 	vector<float> to_xyah();
 	void mark_lost();
 	void mark_removed();
@@ -31,6 +32,7 @@ public:
 
 public:
 	bool is_activated;
+	bool isOverlapped;
 	int track_id;
 	int state;
 	int startClassId;
@@ -38,6 +40,7 @@ public:
 	vector<float> _tlwh;
 	vector<float> tlwh;
 	vector<float> tlbr;
+	vector<float> tlwh_predict;
 	int frame_id;
 	int tracklet_len;
 	int start_frame;
@@ -45,8 +48,17 @@ public:
 	float high_thresh;
 	float match_thresh; 
 	float angle;
+	float area;
+	float area_prev;
+	float a_prev;
+
+
+	float w_max;
+	float h_max;
+	float h_prev;
 
 	KAL_MEAN mean;
+	KAL_MEAN mean_predict;
 	KAL_MEAN mean_prev;
 	KAL_COVA covariance;
 	DETECTBOX delta;

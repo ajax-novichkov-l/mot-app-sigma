@@ -5,6 +5,8 @@ STrack::STrack(vector<float> tlwh_, float score, int label, globalConfig *conf)
 	_tlwh.resize(4);
 	_tlwh.assign(tlwh_.begin(), tlwh_.end());
 
+	tlwh_predict.resize(4);
+
 	is_activated = false;
 	track_id = 0;
 	state = TrackState::New;
@@ -41,6 +43,8 @@ STrack::STrack(vector<float> tlwh_, float score, int label, globalConfig *conf)
 			this->track_thresh = conf->mot_track_thresh;
 		break;
 	}
+	area_prev = tlwh[2]*tlwh[3];
+	h_prev = tlwh[3];
 	start_frame = 0;
 }
 
@@ -128,6 +132,7 @@ void STrack::update(STrack &new_track, int frame_id)
 	this->covariance = mc.second;
 
 	static_tlwh();
+	xyah_to_tlwh();
 	static_tlbr();
 
 	this->state = TrackState::Tracked;
@@ -174,6 +179,59 @@ vector<float> STrack::tlwh_to_xyah(vector<float> tlwh_tmp)
 	return tlwh_output;
 }
 
+void STrack::xyah_to_tlwh(){
+	vector<float> tmp_ltwh = {0.0,0.0,0.0,0.0};
+
+	tmp_ltwh[0] = mean[0];
+	tmp_ltwh[1] = mean[1];
+	tmp_ltwh[2] = mean[2];
+	tmp_ltwh[3] = mean[3]+0.1*mean[3];
+
+	tmp_ltwh[2] *= tmp_ltwh[3];
+	tmp_ltwh[0] -= tmp_ltwh[2] / 2;
+	tmp_ltwh[1] -= tmp_ltwh[3] / 2;
+
+
+	if(tmp_ltwh[3] > this->h_max){
+		this->h_max = tmp_ltwh[3];
+	}
+
+	area = tmp_ltwh[3]*tmp_ltwh[2];
+
+	if(area < area_prev){
+		tmp_ltwh[3] = 0.2*tmp_ltwh[3] + 0.8*this->h_max;
+		tmp_ltwh[2] = tmp_ltwh[3]*a_prev;
+		tmp_ltwh[0] = mean[0] - tmp_ltwh[2] / 2;
+		tmp_ltwh[1] = mean[1] - tmp_ltwh[3] / 2;
+	}
+	area_prev = area;
+	h_prev = tmp_ltwh[3];
+	a_prev = mean[2];
+
+	/*this->tlwh_predict[0] = tmp_ltwh[0];
+	this->tlwh_predict[1] = tmp_ltwh[1];
+	this->tlwh_predict[2] = tmp_ltwh[2];
+	this->tlwh_predict[3] = tmp_ltwh[3];*/
+
+	if(mean[4]>=0){
+		this->tlwh_predict[0] = tmp_ltwh[0]-0.4*mean[4];
+		this->tlwh_predict[2] = tmp_ltwh[2]+2.0*abs(mean[4]); 
+	}else{
+		this->tlwh_predict[0] = tmp_ltwh[0]+1.4*mean[4];
+		this->tlwh_predict[2] = tmp_ltwh[2]+1.4*abs(mean[4]); 
+	}
+
+	if(mean[5]>=0){
+		this->tlwh_predict[1] = tmp_ltwh[1]+mean[5];
+		this->tlwh_predict[3] = tmp_ltwh[3]+2.0*abs(mean[5]); 
+	}else{
+		this->tlwh_predict[1] = tmp_ltwh[1]-mean[5];
+		this->tlwh_predict[3] = tmp_ltwh[3]+2*abs(mean[5]); 
+	}
+
+}
+
+
 vector<float> STrack::to_xyah()
 {
 	return tlwh_to_xyah(tlwh);
@@ -217,7 +275,9 @@ void STrack::multi_predict(vector<STrack*> &stracks, byte_kalman::KalmanFilter &
 			stracks[i]->mean[7] = 0;
 		}
 		kalman_filter.predict(stracks[i]->mean, stracks[i]->covariance);
+		//stracks[i]->mean_predict = stracks[i]->mean;
 		stracks[i]->static_tlwh();
+		//stracks[i]->xyah_to_tlwh();
 		stracks[i]->static_tlbr();
 	}
 }
