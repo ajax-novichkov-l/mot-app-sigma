@@ -1285,8 +1285,9 @@ std::string string_format( const std::string& format, Args ... args )
     if()
 }*/
 
-void checkOverlapping(std::vector<cv::Rect>& _bbox, int index){
+int checkOverlapping(std::vector<cv::Rect>& _bbox, int index){
     std::vector<int> _toDelete;
+    int out_int = 0;
     //std::vector<cv::Rect> _toAdd;
     for (int i = 0; i < _bbox.size(); i++){
         float tmp_x, tmp_y, tmp_w, tmp_h;
@@ -1314,6 +1315,7 @@ void checkOverlapping(std::vector<cv::Rect>& _bbox, int index){
                                 //cv::Rect _rect(tmp_x, tmp_y, tmp_w, tmp_h);
                                 std::cout << tmp_x << " " << tmp_y << " " << tmp_w << " " << tmp_h << std::endl;
                                 //_toAdd.push_back(_rect);
+                                out_int+=1;
                             }
                         }
         }
@@ -1325,7 +1327,7 @@ void checkOverlapping(std::vector<cv::Rect>& _bbox, int index){
     /*for (int i = 0; i < _toAdd.size(); i++){
         _bbox.push_back(_toAdd[i]);
     }*/
-   //return retbool;
+   return out_int;
 }
 
 
@@ -1420,15 +1422,14 @@ void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::ve
 		//}
 	} 
 
-    //int tmpSize = _bbox.size();
+    int tmpSize = 0;//_bbox.size();
     //for (int y = 0; y < _bbox.size(); y++){
-        for (int i = 0; i < _bbox.size(); i++){
-            checkOverlapping(_bbox, i);
-            //_bbox.erase(_bbox.begin() + i);
-            /*if(tmpSize != _bbox.size()){
+        for (int i = 0; i <  _bbox.size(); i++){
+            tmpSize = checkOverlapping(_bbox, i);
+            if(tmpSize!=0){
+                _bbox.erase(_bbox.begin() + i);
                 i=0;
-                tmpSize = _bbox.size();
-            }*/
+            }
         }
    // }
 
