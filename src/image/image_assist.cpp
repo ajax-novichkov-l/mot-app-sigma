@@ -680,9 +680,9 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
         //rectangle(inputImg, cv::Point(left, top), cv::Point(left + width, top + height), getColor(_confidence[idx]), THICKNESS);
         if(inputImg.rows != 0){
             if((top-25) > 0){
-                std::string label = cv::format("%.2f", _confidence[idx]);
-                label = labels[_classId[idx]] + ":" + label;
-                draw_label(inputImg, label, left, top-25, width, _confidence[idx]);
+                //std::string label = cv::format("%.2f", _confidence[idx]);
+                //label = labels[_classId[idx]] + ":" + label;
+                //draw_label(inputImg, label, left, top-25, width, _confidence[idx]);
             }
         }
         
@@ -1287,37 +1287,44 @@ std::string string_format( const std::string& format, Args ... args )
 
 void checkOverlapping(std::vector<cv::Rect>& _bbox, int index){
     std::vector<int> _toDelete;
+    //std::vector<cv::Rect> _toAdd;
     for (int i = 0; i < _bbox.size(); i++){
-        float tmp_x, tmp_y;
+        float tmp_x, tmp_y, tmp_w, tmp_h;
         if(i != index){
             if (_bbox[index].x <= (_bbox[i].x+_bbox[i].width) && 
                 (_bbox[index].x+_bbox[index].width) >= _bbox[i].x && 
                     _bbox[index].y <= (_bbox[i].y+_bbox[i].height) && 
                         (_bbox[index].y+_bbox[index].height) >= _bbox[i].y ) {
-                           tmp_x = fmin(_bbox[index].x, _bbox[i].x);
-                           tmp_y = fmin(_bbox[index].y, _bbox[i].y);
-
-                            if(_bbox[index].x+_bbox[index].width <_bbox[i].x+_bbox[i].width){
-                                _bbox[index].width = _bbox[i].x+_bbox[i].width - tmp_x;
-                            }else{
-                                _bbox[index].width = _bbox[index].x+_bbox[index].width - tmp_x; 
+                            tmp_x = fmin(_bbox[index].x, _bbox[i].x);
+                            if(tmp_x<0){
+                                tmp_x = 0;
                             }
-
-                            if(_bbox[index].y+_bbox[index].height < _bbox[i].y+_bbox[i].height){
-                                _bbox[index].height = _bbox[i].y+_bbox[i].height - tmp_y;
-                            }else{
-                                _bbox[index].height = _bbox[index].y+_bbox[index].height - tmp_y; 
+                            tmp_y = fmin(_bbox[index].y, _bbox[i].y);
+                            if(tmp_y<0){
+                                tmp_y = 0;
                             }
-
-                            _bbox[index].x = tmp_x;
-                            _bbox[index].y = tmp_y;
-                            _toDelete.push_back(i);
+                            tmp_w = fmax(_bbox[index].x+_bbox[index].width, _bbox[i].x+_bbox[i].width)-tmp_x;
+                            tmp_h = fmax(_bbox[index].y+_bbox[index].height, _bbox[i].y+_bbox[i].height)-tmp_y;
+                            if(tmp_w!=0){
+                                _bbox[i].x = tmp_x;
+                                _bbox[i].y = tmp_y;
+                                _bbox[i].width = tmp_w;
+                                _bbox[i].height = tmp_h;
+                                //_toDelete.push_back(i);
+                                //cv::Rect _rect(tmp_x, tmp_y, tmp_w, tmp_h);
+                                std::cout << tmp_x << " " << tmp_y << " " << tmp_w << " " << tmp_h << std::endl;
+                                //_toAdd.push_back(_rect);
+                            }
                         }
         }
     }
-    for (int i = 0; i < _toDelete.size(); i++){
+    //_toDelete.push_back(index);
+    /*for (int i = 0; i < _toDelete.size(); i++){
         _bbox.erase(_bbox.begin() + _toDelete[i]);
-    }
+    }*/
+    /*for (int i = 0; i < _toAdd.size(); i++){
+        _bbox.push_back(_toAdd[i]);
+    }*/
    //return retbool;
 }
 
@@ -1331,13 +1338,13 @@ void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::ve
 
         _bbox.push_back(cv::Rect(stracks[i].tlwh_predict[0], stracks[i].tlwh_predict[1], stracks[i].tlwh_predict[2], stracks[i].tlwh_predict[3]));
 
-		//Scalar s = tracker.get_color(stracks[i].track_id);
+		Scalar s = tracker.get_color(stracks[i].track_id);
 // class - %s", labels[stracks[i].classId].c_str()
-        //h = tlwh[1]+1;
+        h = tlwh[1]+1;
 
-        /*string label = cv::format("obj - %d", stracks[i].track_id);
+        string label = cv::format("obj - %d", stracks[i].track_id);
         cv::Size _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);//- (int)((float)height*(_confidence[idx])) 
-        label = cv::format("score - %.2f", stracks[i].score);
+        /*label = cv::format("score - %.2f", stracks[i].score);
         h += (_size.height+1);
         _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
         label = cv::format("%s", labels[stracks[i].startClassId].c_str());
@@ -1413,16 +1420,17 @@ void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::ve
 		//}
 	} 
 
-    int tmpSize = _bbox.size();
-    for (int y = 0; y < _bbox.size(); y++){
+    //int tmpSize = _bbox.size();
+    //for (int y = 0; y < _bbox.size(); y++){
         for (int i = 0; i < _bbox.size(); i++){
             checkOverlapping(_bbox, i);
-            if(tmpSize != _bbox.size()){
+            //_bbox.erase(_bbox.begin() + i);
+            /*if(tmpSize != _bbox.size()){
                 i=0;
                 tmpSize = _bbox.size();
-            }
+            }*/
         }
-    }
+   // }
 
     /*for (int i = 0; i < _toDelete.size(); i++){
         _bbox.erase(_bbox.begin() + _toDelete[i]);
