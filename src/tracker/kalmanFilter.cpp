@@ -50,14 +50,14 @@ namespace byte_kalman
 		}
 
 		KAL_MEAN std;
-		std(0) = 2 * _std_weight_position_x * measurement[3];
-		std(1) = 2 * _std_weight_position_y * measurement[3];
+		std(0) = 3 * _std_weight_position_x * measurement[3];
+		std(1) = 3 * _std_weight_position_y * measurement[3];
 		std(2) = 1e-2;
-		std(3) = 2 * _std_weight_position_h * measurement[3];
-		std(4) = 10 * _std_weight_velocity_x * measurement[3];
-		std(5) = 10 * _std_weight_velocity_y * measurement[3];
+		std(3) = 3 * _std_weight_position_h * measurement[3];
+		std(4) = 20 * _std_weight_velocity_x * measurement[3];
+		std(5) = 20 * _std_weight_velocity_y * measurement[3];
 		std(6) = 1e-5;
-		std(7) = 10 * _std_weight_velocity_h * measurement[3]; 
+		std(7) = 20 * _std_weight_velocity_h * measurement[3]; 
 
 		KAL_MEAN tmp = std.array().square();
 		KAL_COVA var = tmp.asDiagonal();

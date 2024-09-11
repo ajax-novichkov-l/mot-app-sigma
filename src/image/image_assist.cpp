@@ -680,9 +680,9 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
         //rectangle(inputImg, cv::Point(left, top), cv::Point(left + width, top + height), getColor(_confidence[idx]), THICKNESS);
         if(inputImg.rows != 0){
             if((top-25) > 0){
-                //std::string label = cv::format("%.2f", _confidence[idx]);
-                //label = labels[_classId[idx]] + ":" + label;
-                //draw_label(inputImg, label, left, top-25, width, _confidence[idx]);
+                std::string label = cv::format("%.2f", _confidence[idx]);
+                label = labels[_classId[idx]] + ":" + label;
+                draw_label(inputImg, label, left, top-25, width, _confidence[idx]);
             }
         }
         
