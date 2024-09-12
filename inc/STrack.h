@@ -59,6 +59,7 @@ public:
 
 	KAL_MEAN mean;
 	KAL_MEAN mean_predict;
+	KAL_COVA covariance_predict;
 	KAL_MEAN mean_prev;
 	KAL_COVA covariance;
 	DETECTBOX delta;
