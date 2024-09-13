@@ -383,7 +383,7 @@ for (int idx = 0; idx < images.size(); idx++) {
             cv::Mat picBGR;
             cv::cvtColor(_rgb, picBGR, cv::COLOR_RGB2BGR);
             frame = picBGR;//_rgb;//
-            //delete[] _buffer;
+            delete[] _buffer;
             //cv::imwrite("test.png", frame);
             //exit(0);
         }
@@ -508,7 +508,7 @@ for (int idx = 0; idx < images.size(); idx++) {
         }
         if(has_suffix(stProcessedData.pImagePath.c_str(), ".yuv")){
             delete[] buffer;
-            delete[] _buffer;
+            //delete[] _buffer;
         }  
     }
 

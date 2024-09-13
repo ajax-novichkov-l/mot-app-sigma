@@ -1399,6 +1399,15 @@ void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::ve
         //cv::Size textSize = getTextSize(inputImg, fontFace, fontScale, 0, 0);
     	//putText(inputImg, _label, Point(tlwh[0], tlwh[1] - 5), fontFace, fontScale, Scalar(0, 255, 0), 2, LINE_AA);
         rectangle(inputImg, Rect(tlwh[0], tlwh[1], tlwh[2], tlwh[3]), getColor(stracks[i].score), 1);
+        if(stracks[i].isOverlapped_0){
+            rectangle(inputImg, Rect(tlwh[0], tlwh[1], 32, 32), Scalar(0, 255, 255), 1);
+        }
+        if(stracks[i].isOverlapped_1){
+            rectangle(inputImg, Rect(tlwh[0]+32, tlwh[1], 32, 32), Scalar(255, 255, 0), 1);
+        }
+        if(stracks[i].isOverlapped_2){
+            rectangle(inputImg, Rect(tlwh[0]+64, tlwh[1], 32, 32), Scalar(255, 0, 255), 1);
+        }
         //std::cout << "Xp' - " << tlwh[0] << " Yp' - " << tlwh[1] << " Wp' - " << tlwh[2] << " Hp' - " << tlwh[3] << std::endl;
         
         //cv::drawMarker(inputImg, Point2f(stracks[i].mean(0), stracks[i].mean(1)), Scalar(51, 153, 255), 0, 20, 1);

@@ -185,7 +185,9 @@ void STrack::trackPredict(){
 
 void STrack::xyah_to_tlwh(){
 	vector<float> tmp_ltwh = {0.0,0.0,0.0,0.0};
-
+	isOverlapped_0 = false;
+	isOverlapped_1 = false;
+	isOverlapped_2 = false;
 	mean_predict = mean;
 	covariance_predict = covariance;
 	kalman_filter.predict(mean_predict, covariance_predict);
@@ -208,33 +210,60 @@ void STrack::xyah_to_tlwh(){
 		this->w_max = tmp_ltwh[2];
 	}
 
+	//float w_multiply = 1.0;
+	if(((mean_prev[4]<0) && (mean[4]>0)) || ((mean_prev[4]>0) && (mean[4]<0)) || 
+		((mean_prev[4]==0) && (mean[4]<0)) || ((mean_prev[4]==0) && (mean[4]>0)) || 
+			((mean_prev[4]>0) && (mean[4]==0)) || ((mean_prev[4]<0) && (mean[4]==0))){
+		if(mean[4]>0){
+			isOverlapped_0 = true;
+		}else{
+			if(mean[4]==0){
+				isOverlapped_1 = true;
+			}else{
+				isOverlapped_2 = true;
+			}
+		}
+	}
+
+
+	if(isOverlapped_0){
+		tmp_ltwh[2] *=0.2;
+	}
+	if(isOverlapped_2){
+		tmp_ltwh[0] -= 0.2*tmp_ltwh[2];
+		tmp_ltwh[2] *=0.4;
+	}
+	/*if(mean[0]>mean_prev[0]){
+		isOverlapped_0 = true;
+	}else{
+		if(mean[0]==0){
+			isOverlapped_1 = true;
+		}else{
+			isOverlapped_2 = true;
+		}
+	}*/
+	
+
 	area = tmp_ltwh[3]*tmp_ltwh[2];
 
 	if(area < area_prev){
 		tmp_ltwh[3] = 0.2*tmp_ltwh[3] + 0.8*this->h_prev;
 		tmp_ltwh[2] = 0.2*tmp_ltwh[2] + 0.8*this->w_prev;
+	}/*else{
+		if(((mean_prev[6]<0) && (mean_predict[6]>=0)) || ((mean_prev[6]>=0) && (mean_predict[6]<0))){
+			//float w_prev = mean_prev[2]*mean_prev[3];
+			if(w_prev < tmp_ltwh[2]){
+				tmp_ltwh[2] = 0.2*tmp_ltwh[2] + 0.8*this->w_max;
+				tmp_ltwh[0] = mean_predict[0] - tmp_ltwh[2] / 2;
+			}
+			if(h_prev < tmp_ltwh[3]){
+				tmp_ltwh[3] = 0.2*tmp_ltwh[3] + 0.8*this->h_max;
+				tmp_ltwh[1] = mean_predict[1] - tmp_ltwh[3] / 2;
+			}
+		}
+	}*/
 		tmp_ltwh[0] = mean_predict[0] - tmp_ltwh[2] / 2;
 		tmp_ltwh[1] = mean_predict[1] - tmp_ltwh[3] / 2;
-	}else{
-
-
-	/*this->tlwh_predict[0] = tmp_ltwh[0];
-	this->tlwh_predict[1] = tmp_ltwh[1];
-	this->tlwh_predict[2] = tmp_ltwh[2];
-	this->tlwh_predict[3] = tmp_ltwh[3];*/
-
-	if(((mean_prev[6]<0) && (mean_predict[6]>=0)) || ((mean_prev[6]>=0) && (mean_predict[6]<0))){
-		//float w_prev = mean_prev[2]*mean_prev[3];
-		if(w_prev < tmp_ltwh[2]){
-			tmp_ltwh[2] = 0.2*tmp_ltwh[2] + 0.8*this->w_max;
-			tmp_ltwh[0] = mean_predict[0] - tmp_ltwh[2] / 2;
-		}
-		if(h_prev < tmp_ltwh[3]){
-			tmp_ltwh[3] = 0.2*tmp_ltwh[3] + 0.8*this->h_max;
-			tmp_ltwh[1] = mean_predict[1] - tmp_ltwh[3] / 2;
-		}
-	}
-	}
 	if(mean_predict[4]>=0){
 		this->tlwh_predict[0] = tmp_ltwh[0]-mean_predict[4];
 		this->tlwh_predict[2] = tmp_ltwh[2]+4*abs(mean_predict[4]); 
@@ -243,13 +272,13 @@ void STrack::xyah_to_tlwh(){
 		this->tlwh_predict[2] = tmp_ltwh[2]+6*abs(mean_predict[4]); 
 	}
 
-	if(mean_predict[5]>=0){
-		this->tlwh_predict[1] = tmp_ltwh[1]+mean_predict[5];
-		this->tlwh_predict[3] = tmp_ltwh[3]+2.0*abs(mean_predict[5]); 
-	}else{
-		this->tlwh_predict[1] = tmp_ltwh[1]-mean_predict[5];
-		this->tlwh_predict[3] = tmp_ltwh[3]+2*abs(mean_predict[5]); 
-	}
+	//if(mean_predict[5]>=0){
+		this->tlwh_predict[1] = tmp_ltwh[1];//+mean_predict[5];
+		this->tlwh_predict[3] = tmp_ltwh[3];//+2.0*abs(mean_predict[5]); 
+	//}else{
+	//	this->tlwh_predict[1] = tmp_ltwh[1];//-mean_predict[5];
+	//	this->tlwh_predict[3] = tmp_ltwh[3];//+2*abs(mean_predict[5]); 
+	//}
 
 
 	area_prev = area;

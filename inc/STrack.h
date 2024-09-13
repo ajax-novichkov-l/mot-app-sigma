@@ -33,7 +33,10 @@ public:
 
 public:
 	bool is_activated;
-	bool isOverlapped;
+	bool isOverlapped_0;
+	bool isOverlapped_1;
+	bool isOverlapped_2;
+	bool isOverlapped_3;
 	int track_id;
 	int state;
 	int startClassId;
