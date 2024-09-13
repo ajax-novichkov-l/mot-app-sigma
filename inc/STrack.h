@@ -16,6 +16,7 @@ public:
 
 	vector<float> static tlbr_to_tlwh(vector<float> &tlbr);
 	void static multi_predict(vector<STrack*> &stracks, byte_kalman::KalmanFilter &kalman_filter);
+	void trackPredict();
 	void static_tlwh();
 	void static_tlbr();
 	vector<float> tlwh_to_xyah(vector<float> tlwh_tmp);
@@ -56,6 +57,7 @@ public:
 	float w_max;
 	float h_max;
 	float h_prev;
+	float w_prev;
 
 	KAL_MEAN mean;
 	KAL_MEAN mean_predict;

@@ -8,6 +8,13 @@
 
 using namespace std;
 
+char* buffer; 
+
+bool has_suffix(const string& s, const string& suffix)
+{
+    return (s.size() >= suffix.size()) && equal(suffix.rbegin(), suffix.rend(), s.rbegin());
+} 
+
 void checkDirectory(const char* dirName){
     struct stat sb;
     if (stat(dirName, &sb) != 0){
@@ -351,8 +358,36 @@ for (int idx = 0; idx < images.size(); idx++) {
         //int16_t *ps16Data = (MI_IPU_FORMAT_INT16*)OutputTensorVector.astArrayTensors[0].ptTensorData[0];//phyTensorAddr//ptTensorData
         
         
-
+        cv::Mat frame;
+        char *_buffer;
         std::string name = stProcessedData.pImagePath;
+
+        if(!has_suffix(name.c_str(), ".yuv")){
+            frame = cv::imread(stProcessedData.pImagePath);
+        }else{
+            std::ifstream inputBuf;
+            cout<<"Open image - " << name.c_str() <<endl;
+            inputBuf.open(stProcessedData.pImagePath.c_str(), std::ios::binary);
+            std::filebuf* pbuf = inputBuf.rdbuf();
+            std::size_t size = pbuf->pubseekoff (0,inputBuf.end,inputBuf.in);
+            pbuf->pubseekpos (0,inputBuf.in);
+            _buffer=new char[size];
+            pbuf->sgetn (_buffer,size);
+            inputBuf.close();
+            //cv::Mat _yuv = cv::Mat(stProcessedData.iResizeH*3/2, stProcessedData.iResizeW, CV_8UC1, buffer);
+            //cv::Mat picBGR;
+            //cv::cvtColor(_yuv, picBGR, cv::COLOR_YUV2BGR_YV12);
+
+
+            cv::Mat _rgb = cv::Mat(stProcessedData.iResizeH, stProcessedData.iResizeW, CV_8UC3, _buffer);
+            cv::Mat picBGR;
+            cv::cvtColor(_rgb, picBGR, cv::COLOR_RGB2BGR);
+            frame = picBGR;//_rgb;//
+            //delete[] _buffer;
+            //cv::imwrite("test.png", frame);
+            //exit(0);
+        }
+
 
         unsigned int pos = stProcessedData.pImagePath.rfind("/");
         if (pos > 0 && pos < stProcessedData.pImagePath.size()) {
@@ -445,7 +480,7 @@ for (int idx = 0; idx < images.size(); idx++) {
         jfile << "\n]\n" << std::endl;
         jfile.close();
 
-        _outName = programGonfig.path_imgages + _ts + _sl + strOutImageName;
+        _outName = programGonfig.path_imgages + _ts + _sl + strOutImageName + ".png";
         if(!has_suffix(images[idx], ".dmp")){
             if(programGonfig.out_boxes){
                 trackToImage(img, output_stracks, class_list, tracker);
@@ -471,6 +506,10 @@ for (int idx = 0; idx < images.size(); idx++) {
             fwrite((MI_U8*)OutputTensorVector.astArrayTensors[0].ptTensorData[0], 1, desc.astMI_OutputTensorDescs[0].s32AlignedBufSize, fp);
             fclose(fp);
         }
+        if(has_suffix(stProcessedData.pImagePath.c_str(), ".yuv")){
+            delete[] buffer;
+            delete[] _buffer;
+        }  
     }
 
     IPU_Free(&InputTensorVector.astArrayTensors[0], desc.astMI_InputTensorDescs[0].s32AlignedBufSize);

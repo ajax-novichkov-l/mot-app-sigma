@@ -92,6 +92,11 @@ using std::ios;
 
 globalConfig programGonfig;
 
+extern char* buffer;
+
+extern bool has_suffix(const string& s, const string& suffix);
+
+
 struct PreProcessedData {
     std::string pImagePath;
     unsigned int iResizeH;
@@ -140,6 +145,7 @@ cv::Scalar YELLOW = cv::Scalar(0, 255, 255);
 cv::Scalar RED = cv::Scalar(0,0,255);
 
 std::vector<Object> objects;
+
 
 void DIVPCreate(MI_PHY& phySrcBufAddr, MI_PHY& phyDstBufAddr, void* &pVirSrcBufAddr, void* &pVirDstBufAddr) {
     MI_S32 ret;
@@ -258,7 +264,28 @@ static float rgb2yuv_covert_matrix[9] = {218.0/1024, 732.0/1024, 74.0/1024, -117
 float OpenCV_Image(PreProcessedData* pstPreProcessedData){
     float ratio = 1.0;
     std::string filename = pstPreProcessedData->pImagePath;
-    cv::Mat img = cv::imread(filename, cv::IMREAD_COLOR);
+    cv::Mat img;
+
+    if(has_suffix(filename.c_str(), ".yuv")){
+        //cv::Size yuvSize = cv::Size(pstPreProcessedData->iResizeW, pstPreProcessedData->iResizeH);
+        //char* buffer;
+        std::ifstream inputBuf;
+        inputBuf.open(filename.c_str(), std::ios::binary);
+        std::filebuf* pbuf = inputBuf.rdbuf();
+        std::size_t size = pbuf->pubseekoff (0,inputBuf.end,inputBuf.in);
+        pbuf->pubseekpos (0,inputBuf.in);
+        buffer=new char[size];
+        pbuf->sgetn (buffer,size);
+        inputBuf.close();
+        cv::Mat _rgb = cv::Mat(pstPreProcessedData->iResizeH, pstPreProcessedData->iResizeW, CV_8UC3, buffer);
+        //cv::Mat picBGR;
+        //cv::cvtColor(picYV12, picBGR, cv::COLOR_YUV2BGR_YV12);
+        img = _rgb;
+        //cv::imwrite("test_0.png", img);
+        //cv::imwrite("test.bmp", img);
+    }else{
+        img = cv::imread(filename, cv::IMREAD_COLOR);
+    } 
     if (img.empty()) {
         std::cerr << "Error! Image doesn't exist!" << std::endl;
         exit(1);
@@ -1113,11 +1140,6 @@ static MI_BOOL GetTopN(float aData[], int dataSize, int aResult[], int TopN)
     return TRUE;
 }
 
-bool has_suffix(const std::string& s, const std::string& suffix)
-{
-    return (s.size() >= suffix.size()) && equal(suffix.rbegin(), suffix.rend(), s.rbegin());
-}
-
 static void parse_images_dir(const std::string& base_path, std::vector<std::string>& file_path)
 {
     DIR* dir;
@@ -1139,7 +1161,7 @@ static void parse_images_dir(const std::string& base_path, std::vector<std::stri
             //std::cout<<"name_reg - :"<<ptr->d_name<<std::endl;
         if(strcmp(".", ptr->d_name) == 0)
             continue;
-        if(has_suffix(ptr->d_name, ".jpg") || has_suffix(ptr->d_name, ".bmp") || has_suffix(ptr->d_name, ".png") || has_suffix(ptr->d_name, ".dmp")){
+        if(has_suffix(ptr->d_name, ".jpg") || has_suffix(ptr->d_name, ".bmp") || has_suffix(ptr->d_name, ".png") || has_suffix(ptr->d_name, ".dmp") || has_suffix(ptr->d_name, ".yuv")){
             std::string path = base_path_str + ptr->d_name;
             file_path.push_back(path);
         }
@@ -1333,7 +1355,9 @@ int checkOverlapping(std::vector<cv::Rect>& _bbox, int index){
 
 void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::vector<std::string> &labels, BYTETracker &tracker){
     int h = 0;
+    int j;
     std::vector<cv::Rect> _bbox;
+    std::vector<float> tmp_ltwh = {0.0,0.0,0.0,0.0};
     //_toDelete.clear();
     for (int i = 0; i < stracks.size(); i++){
 		vector<float> tlwh = stracks[i].tlwh;
@@ -1384,7 +1408,19 @@ void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::ve
             //tlwh = stracks[i].tlwh_predict;
             //std::cout << "Xp - " << tlwh[0] << " Yp - " << tlwh[1] << " Wp - " << tlwh[2] << " Hp - " << tlwh[3] << std::endl;
         //rectangle(inputImg, Rect(stracks[i].tlwh_predict[0], stracks[i].tlwh_predict[1], stracks[i].tlwh_predict[2], stracks[i].tlwh_predict[3]), Scalar(0, 255, 0), 1);
-        
+
+        /*for(j=0; j<3; j++){
+            stracks[i].trackPredict();
+            tmp_ltwh[0] = stracks[i].mean_predict[0];
+	        tmp_ltwh[1] = stracks[i].mean_predict[1];
+	        tmp_ltwh[2] = stracks[i].mean_predict[2];
+	        tmp_ltwh[3] = stracks[i].mean_predict[3]+0.2*stracks[i].mean_predict[3];
+
+	        tmp_ltwh[2] *= tmp_ltwh[3];
+	        tmp_ltwh[0] -= tmp_ltwh[2] / 2;
+	        tmp_ltwh[1] -= tmp_ltwh[3] / 2;
+            rectangle(inputImg, Rect(tmp_ltwh[0], tmp_ltwh[1], tmp_ltwh[2], tmp_ltwh[3]), Scalar(51, 153, 255), 1);
+        }*/
 
         
         //}

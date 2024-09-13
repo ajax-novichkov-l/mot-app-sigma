@@ -179,16 +179,22 @@ vector<float> STrack::tlwh_to_xyah(vector<float> tlwh_tmp)
 	return tlwh_output;
 }
 
+void STrack::trackPredict(){
+	kalman_filter.predict(mean_predict, covariance_predict);
+}
+
 void STrack::xyah_to_tlwh(){
 	vector<float> tmp_ltwh = {0.0,0.0,0.0,0.0};
+
 	mean_predict = mean;
 	covariance_predict = covariance;
+	kalman_filter.predict(mean_predict, covariance_predict);
 	kalman_filter.predict(mean_predict, covariance_predict);
 
 	tmp_ltwh[0] = mean_predict[0];
 	tmp_ltwh[1] = mean_predict[1];
 	tmp_ltwh[2] = mean_predict[2];
-	tmp_ltwh[3] = mean_predict[3]+0.1*mean_predict[3];
+	tmp_ltwh[3] = mean_predict[3]+0.2*mean_predict[3];
 
 	tmp_ltwh[2] *= tmp_ltwh[3];
 	tmp_ltwh[0] -= tmp_ltwh[2] / 2;
@@ -198,24 +204,37 @@ void STrack::xyah_to_tlwh(){
 	if(tmp_ltwh[3] > this->h_max){
 		this->h_max = tmp_ltwh[3];
 	}
+	if(tmp_ltwh[2] > this->w_max){
+		this->w_max = tmp_ltwh[2];
+	}
 
 	area = tmp_ltwh[3]*tmp_ltwh[2];
 
 	if(area < area_prev){
-		tmp_ltwh[3] = 0.2*tmp_ltwh[3] + 0.8*this->h_max;
-		tmp_ltwh[2] = tmp_ltwh[3]*a_prev;
+		tmp_ltwh[3] = 0.2*tmp_ltwh[3] + 0.8*this->h_prev;
+		tmp_ltwh[2] = 0.2*tmp_ltwh[2] + 0.8*this->w_prev;
 		tmp_ltwh[0] = mean_predict[0] - tmp_ltwh[2] / 2;
 		tmp_ltwh[1] = mean_predict[1] - tmp_ltwh[3] / 2;
-	}
-	area_prev = area;
-	h_prev = tmp_ltwh[3];
-	a_prev = mean_predict[2];
+	}else{
+
 
 	/*this->tlwh_predict[0] = tmp_ltwh[0];
 	this->tlwh_predict[1] = tmp_ltwh[1];
 	this->tlwh_predict[2] = tmp_ltwh[2];
 	this->tlwh_predict[3] = tmp_ltwh[3];*/
 
+	if(((mean_prev[6]<0) && (mean_predict[6]>=0)) || ((mean_prev[6]>=0) && (mean_predict[6]<0))){
+		//float w_prev = mean_prev[2]*mean_prev[3];
+		if(w_prev < tmp_ltwh[2]){
+			tmp_ltwh[2] = 0.2*tmp_ltwh[2] + 0.8*this->w_max;
+			tmp_ltwh[0] = mean_predict[0] - tmp_ltwh[2] / 2;
+		}
+		if(h_prev < tmp_ltwh[3]){
+			tmp_ltwh[3] = 0.2*tmp_ltwh[3] + 0.8*this->h_max;
+			tmp_ltwh[1] = mean_predict[1] - tmp_ltwh[3] / 2;
+		}
+	}
+	}
 	if(mean_predict[4]>=0){
 		this->tlwh_predict[0] = tmp_ltwh[0]-mean_predict[4];
 		this->tlwh_predict[2] = tmp_ltwh[2]+4*abs(mean_predict[4]); 
@@ -231,6 +250,12 @@ void STrack::xyah_to_tlwh(){
 		this->tlwh_predict[1] = tmp_ltwh[1]-mean_predict[5];
 		this->tlwh_predict[3] = tmp_ltwh[3]+2*abs(mean_predict[5]); 
 	}
+
+
+	area_prev = area;
+	h_prev = tmp_ltwh[3];
+	w_prev = tmp_ltwh[2];
+	a_prev = mean_predict[2];
 
 }
 
