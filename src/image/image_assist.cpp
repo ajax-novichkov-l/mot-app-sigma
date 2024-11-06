@@ -36,6 +36,7 @@
 #include <opencv2/dnn.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
+#include <opencv2/dnn/dnn.hpp>
 #include <sys/time.h>
 #include <unistd.h>
 
@@ -90,7 +91,7 @@ using std::ios;
 #define SRC_IMAGE_SIZE (1920*1080*4)
 #define DST_IMAGE_SIZE (1920*1080*4)   
 
-globalConfig programGonfig;
+track_Kalman::globalConfig programGonfig;
 
 extern char* buffer;
 
@@ -144,7 +145,7 @@ cv::Scalar BLUE = cv::Scalar(255, 178, 50);
 cv::Scalar YELLOW = cv::Scalar(0, 255, 255);
 cv::Scalar RED = cv::Scalar(0,0,255);
 
-std::vector<Object> objects;
+std::vector<track_Kalman::inObject> objects;
 
 
 void DIVPCreate(MI_PHY& phySrcBufAddr, MI_PHY& phyDstBufAddr, void* &pVirSrcBufAddr, void* &pVirDstBufAddr) {
@@ -560,7 +561,7 @@ cv::Size draw_label(cv::Mat& input_image, std::string label, int left, int top, 
     return label_size;
 }
 
-cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::string> &labels, float ratio, std::string filename, int step, globalConfig *conf ) {
+cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::string> &labels, float ratio, std::string filename, int step, track_Kalman::globalConfig *conf ) {
     
     bool isFile = false;
     std::ofstream file;
@@ -653,13 +654,6 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
                 if(isFile){
                     file << labels[class_id.x].c_str() << ", confidence - " << confidence << ", left - " << left << ", top - " << top << ", width - " << width << ", height - " << height << std::endl;
                 }
-
-                /*objects[i].rect.x = left;
-                objects[i].rect.y = top;
-                objects[i].rect.width = width;
-                objects[i].rect.height = height;  
-                objects[i].prob = confidence;
-                objects[i].label = class_id.x;*/
             }
         }
         data += step;
@@ -668,7 +662,7 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
     //printf("indices part \n");
 
     std::vector<int> indices;
-    NMSBoxes(_bbox, _confidence, conf->threshold_main, conf->threshold_boxes, indices);
+    cv::dnn::NMSBoxes(_bbox, _confidence, conf->threshold_main, conf->threshold_boxes, indices);
     std::ofstream file_nms;
     if(conf->out_nms){
         std::string name_nms = filename;
@@ -696,10 +690,10 @@ cv::Mat checkData(cv::Mat &inputImg, float *predictions, const std::vector<std::
         int width = box.width;
         int height = box.height;
 
-        objects[i].rect.x = left;
-        objects[i].rect.y = top;
-        objects[i].rect.width = width;
-        objects[i].rect.height = height;  
+        objects[i].x = box.x;
+        objects[i].y = box.y;
+        objects[i].width = box.width;
+        objects[i].height = box.height;  
         objects[i].prob = _confidence[idx];
         objects[i].label = _classId[idx];
 
@@ -1091,7 +1085,7 @@ cv::Scalar HSV2RGB(const float h, const float s, const float v) {
   }
   return cv::Scalar(r * 255, g * 255, b * 255);
 }
-std::vector<cv::Scalar> GetColors(const int n)
+/*std::vector<cv::Scalar> GetColors(const int n)
 {
   std::vector<cv::Scalar> colors;
   cv::RNG rng(12345);
@@ -1104,7 +1098,7 @@ std::vector<cv::Scalar> GetColors(const int n)
     colors.push_back(HSV2RGB(h, s, v));
   }
   return colors;
-}
+}*/
 
 static MI_BOOL GetTopN(float aData[], int dataSize, int aResult[], int TopN)
 {
@@ -1353,77 +1347,77 @@ int checkOverlapping(std::vector<cv::Rect>& _bbox, int index){
 }
 
 
-void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::vector<std::string> &labels, BYTETracker &tracker){
+void trackToImage(cv::Mat &inputImg, std::vector<track_Kalman::KTrack> &tracks, const std::vector<std::string> &labels, track_Kalman::KTracker &tracker){
     int h = 0;
     int j;
     std::vector<cv::Rect> _bbox;
     std::vector<float> tmp_ltwh = {0.0,0.0,0.0,0.0};
     //_toDelete.clear();
-    for (int i = 0; i < stracks.size(); i++){
-		vector<float> tlwh = stracks[i].tlwh;
+    for (int i = 0; i < tracks.size(); i++){
+		vector<float> tlwh = tracks[i].tlwh;
 
-        _bbox.push_back(cv::Rect(stracks[i].tlwh_predict[0], stracks[i].tlwh_predict[1], stracks[i].tlwh_predict[2], stracks[i].tlwh_predict[3]));
+        _bbox.push_back(cv::Rect(tracks[i].tlwh_predict[0], tracks[i].tlwh_predict[1], tracks[i].tlwh_predict[2], tracks[i].tlwh_predict[3]));
 
-		Scalar s = tracker.get_color(stracks[i].track_id);
-// class - %s", labels[stracks[i].classId].c_str()
+		Scalar s = getColor(tracks[i].score);
+// class - %s", labels[tracks[i].classId].c_str()
         h = tlwh[1]+1;
 
-        string label = cv::format("obj - %d", stracks[i].track_id);
-        cv::Size _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);//- (int)((float)height*(_confidence[idx])) 
-        /*label = cv::format("score - %.2f", stracks[i].score);
+        string label = cv::format("obj - %d", tracks[i].track_id);
+        cv::Size _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], tracks[i].score);//- (int)((float)height*(_confidence[idx])) 
+        /*label = cv::format("score - %.2f", tracks[i].score);
         h += (_size.height+1);
-        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
-        label = cv::format("%s", labels[stracks[i].startClassId].c_str());
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], tracks[i].score);
+        label = cv::format("%s", labels[tracks[i].startClassId].c_str());
         h += (_size.height+1);
-        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);*/
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], tracks[i].score);*/
 
-        /*label = cv::format("state-%d", stracks[i].state);
+        /*label = cv::format("state-%d", tracks[i].state);
         h += (_size.height+1);
-        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);*/
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], tracks[i].score);*/
 
-        /*label = cv::format("Vx - %.2f", stracks[i].mean(4));
+        /*label = cv::format("Vx - %.2f", tracks[i].mean(4));
         h += (_size.height+1);
-        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
-        label = cv::format("Vy - %.2f", stracks[i].mean(5));
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], tracks[i].score);
+        label = cv::format("Vy - %.2f", tracks[i].mean(5));
         h += (_size.height+1);
-        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
-        label = cv::format("Va - %.2f", stracks[i].mean(6));
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], tracks[i].score);
+        label = cv::format("Va - %.2f", tracks[i].mean(6));
         h += (_size.height+1);
-        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
-        label = cv::format("Vh - %.2f", stracks[i].mean(7));
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], tracks[i].score);
+        label = cv::format("Vh - %.2f", tracks[i].mean(7));
         h += (_size.height+1);
-        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);*/
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], tracks[i].score);*/
 
 
         //int fontFace = cv::FONT_HERSHEY_DUPLEX, fontScale = _label.size() / 10;
         //cv::Size textSize = getTextSize(inputImg, fontFace, fontScale, 0, 0);
     	//putText(inputImg, _label, Point(tlwh[0], tlwh[1] - 5), fontFace, fontScale, Scalar(0, 255, 0), 2, LINE_AA);
-        rectangle(inputImg, Rect(tlwh[0], tlwh[1], tlwh[2], tlwh[3]), getColor(stracks[i].score), 1);
-        if(stracks[i].isOverlapped_0){
+        rectangle(inputImg, Rect(tlwh[0], tlwh[1], tlwh[2], tlwh[3]), getColor(tracks[i].score), 1);
+        if(tracks[i].isOverlapped_0){
             rectangle(inputImg, Rect(tlwh[0], tlwh[1], 32, 32), Scalar(0, 255, 255), 1);
         }
-        if(stracks[i].isOverlapped_1){
+        if(tracks[i].isOverlapped_1){
             rectangle(inputImg, Rect(tlwh[0]+32, tlwh[1], 32, 32), Scalar(255, 255, 0), 1);
         }
-        if(stracks[i].isOverlapped_2){
+        if(tracks[i].isOverlapped_2){
             rectangle(inputImg, Rect(tlwh[0]+64, tlwh[1], 32, 32), Scalar(255, 0, 255), 1);
         }
         //std::cout << "Xp' - " << tlwh[0] << " Yp' - " << tlwh[1] << " Wp' - " << tlwh[2] << " Hp' - " << tlwh[3] << std::endl;
         
-        //cv::drawMarker(inputImg, Point2f(stracks[i].mean(0), stracks[i].mean(1)), Scalar(51, 153, 255), 0, 20, 1);
+        //cv::drawMarker(inputImg, Point2f(tracks[i].mean(0), tracks[i].mean(1)), Scalar(51, 153, 255), 0, 20, 1);
         //for(int y = 0;y<5; y++){
-           // stracks[i].kalman_filter.predict(stracks[i].mean, stracks[i].covariance);
-           // stracks[i].xyah_to_tlwh();
-            //tlwh = stracks[i].tlwh_predict;
+           // tracks[i].kalman_filter.predict(tracks[i].mean, tracks[i].covariance);
+           // tracks[i].xyah_to_tlwh();
+            //tlwh = tracks[i].tlwh_predict;
             //std::cout << "Xp - " << tlwh[0] << " Yp - " << tlwh[1] << " Wp - " << tlwh[2] << " Hp - " << tlwh[3] << std::endl;
-        //rectangle(inputImg, Rect(stracks[i].tlwh_predict[0], stracks[i].tlwh_predict[1], stracks[i].tlwh_predict[2], stracks[i].tlwh_predict[3]), Scalar(0, 255, 0), 1);
+        //rectangle(inputImg, Rect(tracks[i].tlwh_predict[0], tracks[i].tlwh_predict[1], tracks[i].tlwh_predict[2], tracks[i].tlwh_predict[3]), Scalar(0, 255, 0), 1);
 
         /*for(j=0; j<3; j++){
-            stracks[i].trackPredict();
-            tmp_ltwh[0] = stracks[i].mean_predict[0];
-	        tmp_ltwh[1] = stracks[i].mean_predict[1];
-	        tmp_ltwh[2] = stracks[i].mean_predict[2];
-	        tmp_ltwh[3] = stracks[i].mean_predict[3]+0.2*stracks[i].mean_predict[3];
+            tracks[i].trackPredict();
+            tmp_ltwh[0] = tracks[i].mean_predict[0];
+	        tmp_ltwh[1] = tracks[i].mean_predict[1];
+	        tmp_ltwh[2] = tracks[i].mean_predict[2];
+	        tmp_ltwh[3] = tracks[i].mean_predict[3]+0.2*tracks[i].mean_predict[3];
 
 	        tmp_ltwh[2] *= tmp_ltwh[3];
 	        tmp_ltwh[0] -= tmp_ltwh[2] / 2;
@@ -1433,37 +1427,37 @@ void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::ve
 
         
         //}
-        /*label = cv::format("r1-%.2f", stracks[i].toDraw.first);
+        /*label = cv::format("r1-%.2f", tracks[i].toDraw.first);
         h += (_size.height+1);
-        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
-        label = cv::format("r2-%.2f", stracks[i].toDraw.second);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], tracks[i].score);
+        label = cv::format("r2-%.2f", tracks[i].toDraw.second);
         h += (_size.height+1);
-        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
-        label = cv::format("angle-%.2f", stracks[i].angle);
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], tracks[i].score);
+        label = cv::format("angle-%.2f", tracks[i].angle);
         h += (_size.height+1);
-        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);*/
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], tracks[i].score);*/
 
-        /*label = cv::format("dx - %.5f", stracks[i].kalman_filter.innovation(0,0));
+        /*label = cv::format("dx - %.5f", tracks[i].kalman_filter.innovation(0,0));
         h += (_size.height+1);
-        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
-        label = cv::format("dy - %.5f", stracks[i].kalman_filter.innovation(0,1));
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], tracks[i].score);
+        label = cv::format("dy - %.5f", tracks[i].kalman_filter.innovation(0,1));
         h += (_size.height+1);
-        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
-        label = cv::format("da - %.5f", stracks[i].kalman_filter.innovation(0,2));
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], tracks[i].score);
+        label = cv::format("da - %.5f", tracks[i].kalman_filter.innovation(0,2));
         h += (_size.height+1);
-        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);
-        label = cv::format("dh - %.5f", stracks[i].kalman_filter.innovation(0,3));
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], tracks[i].score);
+        label = cv::format("dh - %.5f", tracks[i].kalman_filter.innovation(0,3));
         h += (_size.height+1);
-        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], stracks[i].score);*/
+        _size = draw_label(inputImg, label, tlwh[0], h, tlwh[2], tracks[i].score);*/
 
-        cv::ellipse(inputImg, Point2f(stracks[i].mean(0), stracks[i].mean(1)), Size2f(stracks[i].toDraw.first, stracks[i].toDraw.second), stracks[i].angle, 0, 360, Scalar(51, 153, 255), 1, 0, 0);
+        cv::ellipse(inputImg, Point2f(tracks[i].mean(0), tracks[i].mean(1)), Size2f(tracks[i].toDraw.first, tracks[i].toDraw.second), tracks[i].angle, 0, 360, Scalar(51, 153, 255), 1, 0, 0);
 		/*std::string sep = "\n++++++++++++++++++++++++++++++++++++++\n";
         Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
-        std::cout << stracks[i].mean.format(CleanFmt) << sep;
-		std::cout << stracks[i].covariance.format(CleanFmt) << sep;
-        std::cout << "r1 - " << stracks[i].toDraw.first << std::endl;
-        std::cout << "r2 - " << stracks[i].toDraw.second << sep;*/
-        cv::drawMarker(inputImg, Point2f(stracks[i].mean_prev(0), stracks[i].mean_prev(1)), Scalar(0, 0, 255), 0, 20, 1);
+        std::cout << tracks[i].mean.format(CleanFmt) << sep;
+		std::cout << tracks[i].covariance.format(CleanFmt) << sep;
+        std::cout << "r1 - " << tracks[i].toDraw.first << std::endl;
+        std::cout << "r2 - " << tracks[i].toDraw.second << sep;*/
+        cv::drawMarker(inputImg, Point2f(tracks[i].mean_prev(0), tracks[i].mean_prev(1)), Scalar(0, 0, 255), 0, 20, 1);
 		//}
 	} 
 
@@ -1486,7 +1480,7 @@ void trackToImage(cv::Mat &inputImg, std::vector<STrack> &stracks, const std::ve
     }
 }
 
-void trackTolog(std::ofstream &jfile, STrack &track){
+void trackTolog(std::ofstream &jfile, track_Kalman::KTrack &track){
     jfile << "\t{\n" 
         << "\t\t\"track_id\": " << track.track_id << ",\n"
         << "\t\t\"start_category_id\": " << track.startClassId << ",\n"
@@ -1517,15 +1511,15 @@ void trackTolog(std::ofstream &jfile, STrack &track){
     //<< std::endl;
 }
 
-void objTolog(std::ofstream &jfile, Object &object){
+void objTolog(std::ofstream &jfile, track_Kalman::inObject &object){
     jfile << "\t{\n" 
         << "\t\t\"score\": " << object.prob << ",\n"
         << "\t\t\"category_id\": " << object.label << ",\n"
         << "\t\t\"bbox\": [\n"
-            << "\t\t\t" << object.rect.x << ",\n"
-            << "\t\t\t" << object.rect.y << ",\n"
-            << "\t\t\t" << object.rect.width << ",\n"
-            << "\t\t\t" << object.rect.height << "\n"
+            << "\t\t\t" << object.x << ",\n"
+            << "\t\t\t" << object.y << ",\n"
+            << "\t\t\t" << object.width << ",\n"
+            << "\t\t\t" << object.height << "\n"
         << "\t\t]\n"
         << "\t}";
     //<< std::endl;

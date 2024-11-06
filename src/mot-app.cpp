@@ -1,7 +1,7 @@
 #include <iostream>
 #include "dictionary.h"
 #include "iniparser.h"   
-#include "BYTETracker.h"
+#include "KTracker.h"
 
 #include "image/image_assist.cpp"
 #include "opencv2/imgproc.hpp"
@@ -146,7 +146,7 @@ int main(int argc,char *argv[]){
     MI_IPU_TensorVector_t OutputTensorVector;
     MI_IPU_OfflineModelStaticInfo_t OfflineModelInfo;
 
-    BYTETracker tracker(&programGonfig);
+    track_Kalman::KTracker tracker(&programGonfig);
     int num_frames = 0;
     int total_ms = 1;
     
@@ -411,7 +411,7 @@ for (int idx = 0; idx < images.size(); idx++) {
         static struct  timeval    tv_end;
         gettimeofday(&tv_start,NULL);
 
-        vector<STrack> output_stracks = tracker.update(objects); 
+        std::vector<track_Kalman::KTrack> output_tracks = tracker.update(objects); 
 
         gettimeofday(&tv_end,NULL);
         int elasped_time = (tv_end.tv_sec-tv_start.tv_sec)*1000+(tv_end.tv_usec-tv_start.tv_usec)/1000;
@@ -452,29 +452,29 @@ for (int idx = 0; idx < images.size(); idx++) {
         jfile.open(_outName, std::ios_base::out);
         jfile << "[" << std::endl;
 
-        for (int i = 0; i < tracker.tracked_stracks.size(); i++){
+        for (int i = 0; i < tracker.tracked_tracks.size(); i++){
             if(i!=0){
                 jfile << "," << std::endl;
             }
-            trackTolog(jfile, tracker.tracked_stracks[i]);
+            trackTolog(jfile, tracker.tracked_tracks[i]);
         }
-        if(tracker.lost_stracks.size()!=0){
+        if(tracker.lost_tracks.size()!=0){
             jfile << "," << std::endl;
         }
-        for (int i = 0; i < tracker.lost_stracks.size(); i++){
+        for (int i = 0; i < tracker.lost_tracks.size(); i++){
             if(i!=0){
                 jfile << "," << std::endl;
             }
-            trackTolog(jfile, tracker.lost_stracks[i]);
+            trackTolog(jfile, tracker.lost_tracks[i]);
         }
-        if(tracker.removed_stracks.size() != 0){
+        if(tracker.removed_tracks.size() != 0){
             jfile << "," << std::endl;
         }
-        for (int i = 0; i < tracker.removed_stracks.size(); i++){
+        for (int i = 0; i < tracker.removed_tracks.size(); i++){
             if(i!=0){
                 jfile << "," << std::endl;
             }
-            trackTolog(jfile, tracker.removed_stracks[i]);
+            trackTolog(jfile, tracker.removed_tracks[i]);
         }
 
         jfile << "\n]\n" << std::endl;
@@ -483,7 +483,7 @@ for (int idx = 0; idx < images.size(); idx++) {
         _outName = programGonfig.path_imgages + _ts + _sl + strOutImageName + ".png";
         if(!has_suffix(images[idx], ".dmp")){
             if(programGonfig.out_boxes){
-                trackToImage(img, output_stracks, class_list, tracker);
+                trackToImage(img, output_tracks, class_list, tracker);
 
                 string label = cv::format("time - %d", elasped_time);
                 draw_label(img, label, 20, 20, 100, 0.98);

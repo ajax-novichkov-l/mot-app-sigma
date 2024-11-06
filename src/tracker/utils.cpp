@@ -1,12 +1,12 @@
-#include "BYTETracker.h"
+#include "KTracker.h"
 #include "lapjv.h"
 #include <iostream>
 #include <map>
 
-vector<STrack*> BYTETracker::joint_stracks(vector<STrack*> &tlista, vector<STrack> &tlistb)
+vector<track_Kalman::KTrack *> track_Kalman::KTracker::joint_tracks(vector<track_Kalman::KTrack *> &tlista, vector<track_Kalman::KTrack> &tlistb)
 {
 	map<int, int> exists;
-	vector<STrack*> res;
+	vector<track_Kalman::KTrack *> res;
 	for (int i = 0; i < tlista.size(); i++)
 	{
 		exists.insert(pair<int, int>(tlista[i]->track_id, 1));
@@ -24,10 +24,10 @@ vector<STrack*> BYTETracker::joint_stracks(vector<STrack*> &tlista, vector<STrac
 	return res;
 }
 
-vector<STrack> BYTETracker::joint_stracks(vector<STrack> &tlista, vector<STrack> &tlistb)
+vector<track_Kalman::KTrack> track_Kalman::KTracker::joint_tracks(vector<track_Kalman::KTrack> &tlista, vector<track_Kalman::KTrack> &tlistb)
 {
 	map<int, int> exists;
-	vector<STrack> res;
+	vector<track_Kalman::KTrack> res;
 	for (int i = 0; i < tlista.size(); i++)
 	{
 		exists.insert(pair<int, int>(tlista[i].track_id, 1));
@@ -45,25 +45,25 @@ vector<STrack> BYTETracker::joint_stracks(vector<STrack> &tlista, vector<STrack>
 	return res;
 }
 
-vector<STrack> BYTETracker::sub_stracks(vector<STrack> &tlista, vector<STrack> &tlistb)
+vector<track_Kalman::KTrack> track_Kalman::KTracker::sub_tracks(vector<track_Kalman::KTrack> &tlista, vector<track_Kalman::KTrack> &tlistb)
 {
-	map<int, STrack> stracks;
+	map<int, track_Kalman::KTrack> tracks;
 	for (int i = 0; i < tlista.size(); i++)
 	{
-		stracks.insert(pair<int, STrack>(tlista[i].track_id, tlista[i]));
+		tracks.insert(pair<int, KTrack>(tlista[i].track_id, tlista[i]));
 	}
 	for (int i = 0; i < tlistb.size(); i++)
 	{
 		int tid = tlistb[i].track_id;
-		if (stracks.count(tid) != 0)
+		if (tracks.count(tid) != 0)
 		{
-			stracks.erase(tid);
+			tracks.erase(tid);
 		}
 	}
 
-	vector<STrack> res;
-	std::map<int, STrack>::iterator  it;
-	for (it = stracks.begin(); it != stracks.end(); ++it)
+	vector<track_Kalman::KTrack> res;
+	std::map<int, track_Kalman::KTrack>::iterator it;
+	for (it = tracks.begin(); it != tracks.end(); ++it)
 	{
 		res.push_back(it->second);
 	}
@@ -71,10 +71,10 @@ vector<STrack> BYTETracker::sub_stracks(vector<STrack> &tlista, vector<STrack> &
 	return res;
 }
 
-void BYTETracker::remove_duplicate_stracks(vector<STrack> &resa, vector<STrack> &resb, vector<STrack> &stracksa, vector<STrack> &stracksb)
+void track_Kalman::KTracker::remove_duplicate_tracks(vector<track_Kalman::KTrack> &resa, vector<track_Kalman::KTrack> &resb, vector<track_Kalman::KTrack> &tracksa, vector<track_Kalman::KTrack> &tracksb)
 {
-	vector<vector<float> > pdist = iou_distance(stracksa, stracksb);
-	vector<pair<int, int> > pairs;
+	vector<vector<float>> pdist = iou_distance(tracksa, tracksb);
+	vector<pair<int, int>> pairs;
 	for (int i = 0; i < pdist.size(); i++)
 	{
 		for (int j = 0; j < pdist[i].size(); j++)
@@ -89,35 +89,39 @@ void BYTETracker::remove_duplicate_stracks(vector<STrack> &resa, vector<STrack> 
 	vector<int> dupa, dupb;
 	for (int i = 0; i < pairs.size(); i++)
 	{
-		int timep = stracksa[pairs[i].first].frame_id - stracksa[pairs[i].first].start_frame;
-		int timeq = stracksb[pairs[i].second].frame_id - stracksb[pairs[i].second].start_frame;
+		int timep = tracksa[pairs[i].first].frame_id - tracksa[pairs[i].first].start_frame;
+		int timeq = tracksb[pairs[i].second].frame_id - tracksb[pairs[i].second].start_frame;
 		if (timep > timeq)
+		{
 			dupb.push_back(pairs[i].second);
+		}
 		else
+		{
 			dupa.push_back(pairs[i].first);
+		}
 	}
 
-	for (int i = 0; i < stracksa.size(); i++)
+	for (int i = 0; i < tracksa.size(); i++)
 	{
 		vector<int>::iterator iter = find(dupa.begin(), dupa.end(), i);
 		if (iter == dupa.end())
 		{
-			resa.push_back(stracksa[i]);
+			resa.push_back(tracksa[i]);
 		}
 	}
 
-	for (int i = 0; i < stracksb.size(); i++)
+	for (int i = 0; i < tracksb.size(); i++)
 	{
 		vector<int>::iterator iter = find(dupb.begin(), dupb.end(), i);
 		if (iter == dupb.end())
 		{
-			resb.push_back(stracksb[i]);
+			resb.push_back(tracksb[i]);
 		}
 	}
 }
 
-void BYTETracker::linear_assignment(vector<vector<float> > &cost_matrix, int cost_matrix_size, int cost_matrix_size_size, float thresh,
-	vector<vector<int> > &matches, vector<int> &unmatched_a, vector<int> &unmatched_b)
+void track_Kalman::KTracker::linear_assignment(vector<vector<float>> &cost_matrix, int cost_matrix_size, int cost_matrix_size_size, float thresh,
+								 vector<vector<int>> &matches, vector<int> &unmatched_a, vector<int> &unmatched_b)
 {
 	if (cost_matrix.size() == 0)
 	{
@@ -132,7 +136,8 @@ void BYTETracker::linear_assignment(vector<vector<float> > &cost_matrix, int cos
 		return;
 	}
 
-	vector<int> rowsol; vector<int> colsol;
+	vector<int> rowsol;
+	vector<int> colsol;
 	float c = lapjv(cost_matrix, rowsol, colsol, true, thresh);
 	for (int i = 0; i < rowsol.size(); i++)
 	{
@@ -158,11 +163,13 @@ void BYTETracker::linear_assignment(vector<vector<float> > &cost_matrix, int cos
 	}
 }
 
-vector<vector<float> > BYTETracker::ious(vector<vector<float> > &atlbrs, vector<vector<float> > &btlbrs)
+vector<vector<float>> track_Kalman::KTracker::ious(vector<vector<float>> &atlbrs, vector<vector<float>> &btlbrs)
 {
-	vector<vector<float> > ious;
-	if (atlbrs.size()*btlbrs.size() == 0)
+	vector<vector<float>> ious;
+	if (atlbrs.size() * btlbrs.size() == 0)
+	{
 		return ious;
+	}
 
 	ious.resize(atlbrs.size());
 	for (int i = 0; i < ious.size(); i++)
@@ -170,20 +177,20 @@ vector<vector<float> > BYTETracker::ious(vector<vector<float> > &atlbrs, vector<
 		ious[i].resize(btlbrs.size());
 	}
 
-	//bbox_ious
+	// bbox_ious
 	for (int k = 0; k < btlbrs.size(); k++)
 	{
 		vector<float> ious_tmp;
-		float box_area = (btlbrs[k][2] - btlbrs[k][0] + 1)*(btlbrs[k][3] - btlbrs[k][1] + 1);
+		float box_area = (btlbrs[k][2] - btlbrs[k][0] + 1) * (btlbrs[k][3] - btlbrs[k][1] + 1);
 		for (int n = 0; n < atlbrs.size(); n++)
 		{
 			float iw = min(atlbrs[n][2], btlbrs[k][2]) - max(atlbrs[n][0], btlbrs[k][0]) + 1;
 			if (iw > 0)
 			{
 				float ih = min(atlbrs[n][3], btlbrs[k][3]) - max(atlbrs[n][1], btlbrs[k][1]) + 1;
-				if(ih > 0)
+				if (ih > 0)
 				{
-					float ua = (atlbrs[n][2] - atlbrs[n][0] + 1)*(atlbrs[n][3] - atlbrs[n][1] + 1) + box_area - iw * ih;
+					float ua = (atlbrs[n][2] - atlbrs[n][0] + 1) * (atlbrs[n][3] - atlbrs[n][1] + 1) + box_area - iw * ih;
 					ious[n][k] = iw * ih / ua;
 				}
 				else
@@ -197,20 +204,19 @@ vector<vector<float> > BYTETracker::ious(vector<vector<float> > &atlbrs, vector<
 			}
 		}
 	}
-
 	return ious;
 }
 
-vector<vector<float> > BYTETracker::iou_distance(vector<STrack*> &atracks, vector<STrack> &btracks, int &dist_size, int &dist_size_size)
+vector<vector<float>> track_Kalman::KTracker::iou_distance(vector<track_Kalman::KTrack *> &atracks, vector<track_Kalman::KTrack> &btracks, int &dist_size, int &dist_size_size)
 {
-	vector<vector<float> > cost_matrix;
+	vector<vector<float>> cost_matrix;
 	if (atracks.size() * btracks.size() == 0)
 	{
 		dist_size = atracks.size();
 		dist_size_size = btracks.size();
 		return cost_matrix;
 	}
-	vector<vector<float> > atlbrs, btlbrs;
+	vector<vector<float>> atlbrs, btlbrs;
 	for (int i = 0; i < atracks.size(); i++)
 	{
 		atlbrs.push_back(atracks[i]->tlbr);
@@ -223,35 +229,8 @@ vector<vector<float> > BYTETracker::iou_distance(vector<STrack*> &atracks, vecto
 	dist_size = atracks.size();
 	dist_size_size = btracks.size();
 
-	vector<vector<float> > _ious = ious(atlbrs, btlbrs);
-	
-	for (int i = 0; i < _ious.size();i++)
-	{
-		vector<float> _iou;
-		for (int j = 0; j < _ious[i].size(); j++)
-		{
-			_iou.push_back(1 - _ious[i][j]);
-		}
-		cost_matrix.push_back(_iou);
-	}
+	vector<vector<float>> _ious = ious(atlbrs, btlbrs);
 
-	return cost_matrix;
-}
-
-vector<vector<float> > BYTETracker::iou_distance(vector<STrack> &atracks, vector<STrack> &btracks)
-{
-	vector<vector<float> > atlbrs, btlbrs;
-	for (int i = 0; i < atracks.size(); i++)
-	{
-		atlbrs.push_back(atracks[i].tlbr);
-	}
-	for (int i = 0; i < btracks.size(); i++)
-	{
-		btlbrs.push_back(btracks[i].tlbr);
-	}
-
-	vector<vector<float> > _ious = ious(atlbrs, btlbrs);
-	vector<vector<float> > cost_matrix;
 	for (int i = 0; i < _ious.size(); i++)
 	{
 		vector<float> _iou;
@@ -261,17 +240,42 @@ vector<vector<float> > BYTETracker::iou_distance(vector<STrack> &atracks, vector
 		}
 		cost_matrix.push_back(_iou);
 	}
-
 	return cost_matrix;
 }
 
-double BYTETracker::lapjv(const vector<vector<float> > &cost, vector<int> &rowsol, vector<int> &colsol,
-	bool extend_cost, float cost_limit, bool return_cost)
+vector<vector<float>> track_Kalman::KTracker::iou_distance(vector<track_Kalman::KTrack> &atracks, vector<track_Kalman::KTrack> &btracks)
 {
-	vector<vector<float> > cost_c;
+	vector<vector<float>> atlbrs, btlbrs;
+	for (int i = 0; i < atracks.size(); i++)
+	{
+		atlbrs.push_back(atracks[i].tlbr);
+	}
+	for (int i = 0; i < btracks.size(); i++)
+	{
+		btlbrs.push_back(btracks[i].tlbr);
+	}
+
+	vector<vector<float>> _ious = ious(atlbrs, btlbrs);
+	vector<vector<float>> cost_matrix;
+	for (int i = 0; i < _ious.size(); i++)
+	{
+		vector<float> _iou;
+		for (int j = 0; j < _ious[i].size(); j++)
+		{
+			_iou.push_back(1 - _ious[i][j]);
+		}
+		cost_matrix.push_back(_iou);
+	}
+	return cost_matrix;
+}
+
+double track_Kalman::KTracker::lapjv(const vector<vector<float>> &cost, vector<int> &rowsol, vector<int> &colsol,
+					   bool extend_cost, float cost_limit, bool return_cost)
+{
+	vector<vector<float>> cost_c;
 	cost_c.assign(cost.begin(), cost.end());
 
-	vector<vector<float> > cost_c_extended;
+	vector<vector<float>> cost_c_extended;
 
 	int n_rows = cost.size();
 	int n_cols = cost[0].size();
@@ -288,11 +292,12 @@ double BYTETracker::lapjv(const vector<vector<float> > &cost, vector<int> &rowso
 		if (!extend_cost)
 		{
 			cout << "set extend_cost=True" << endl;
-			system("pause");
-			exit(0);
+			//system("pause");
+			//exit(0);
+			return 0;
 		}
 	}
-		
+
 	if (extend_cost || cost_limit < LONG_MAX)
 	{
 		n = n_rows + n_cols;
@@ -362,15 +367,16 @@ double BYTETracker::lapjv(const vector<vector<float> > &cost, vector<int> &rowso
 		}
 	}
 
-	int* x_c = new int[sizeof(int) * n];
+	int *x_c = new int[sizeof(int) * n];
 	int *y_c = new int[sizeof(int) * n];
 
-	int ret = lapjv_internal(n, cost_ptr, x_c, y_c);
+	int ret = track_Kalman::transtort::lapjv_internal(n, cost_ptr, x_c, y_c);
 	if (ret != 0)
 	{
 		cout << "Calculate Wrong!" << endl;
-		system("pause");
-		exit(0);
+		//system("pause");
+		//exit(0);
+		return 0;
 	}
 
 	double opt = 0.0;
@@ -399,7 +405,7 @@ double BYTETracker::lapjv(const vector<vector<float> > &cost, vector<int> &rowso
 			{
 				if (rowsol[i] != -1)
 				{
-					//cout << i << "\t" << rowsol[i] << "\t" << cost_ptr[i][rowsol[i]] << endl;
+					// cout << i << "\t" << rowsol[i] << "\t" << cost_ptr[i][rowsol[i]] << endl;
 					opt += cost_ptr[i][rowsol[i]];
 				}
 			}
@@ -415,17 +421,11 @@ double BYTETracker::lapjv(const vector<vector<float> > &cost, vector<int> &rowso
 
 	for (int i = 0; i < n; i++)
 	{
-		delete[]cost_ptr[i];
+		delete[] cost_ptr[i];
 	}
-	delete[]cost_ptr;
-	delete[]x_c;
-	delete[]y_c;
+	delete[] cost_ptr;
+	delete[] x_c;
+	delete[] y_c;
 
 	return opt;
-}
-
-Scalar BYTETracker::get_color(int idx)
-{
-	idx += 3;
-	return Scalar(37 * idx % 255, 17 * idx % 255, 29 * idx % 255);
 }

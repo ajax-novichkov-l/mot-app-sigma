@@ -25,9 +25,9 @@ message("find include dir = ${ALL_BUILD_DIR}")
 file(GLOB_RECURSE MI_SYS_CUSTOM_PATH "${ALL_BUILD_DIR}/mi_sys.h")
 
 foreach(X ${MI_SYS_CUSTOM_PATH})
-    if("${X}" MATCHES "libsav533q")
+    if("${X}" MATCHES "libssc338q")
         get_filename_component(ONE_DIR "${X}" DIRECTORY)
-        message(STATUS "libsav533q lib path=${ONE_DIR}")
+        message(STATUS "libsssc338q lib path=${ONE_DIR}")
         get_filename_component(SECOND_DIR "${ONE_DIR}" DIRECTORY)
         include_directories(${ONE_DIR})
         include_directories(${SECOND_DIR})
@@ -35,7 +35,7 @@ foreach(X ${MI_SYS_CUSTOM_PATH})
 endforeach()
 
 file(GLOB_RECURSE MI_LIB_CUSTOM_PATH "${ALL_BUILD_DIR}/libmi_sys.so")
-    if("${MI_LIB_CUSTOM_PATH}" MATCHES "libsav533q")
+    if("${MI_LIB_CUSTOM_PATH}" MATCHES "libssc338q")
         get_filename_component(ONE_DIR "${MI_LIB_CUSTOM_PATH}" DIRECTORY)
         message(STATUS "mi lib path=${ONE_DIR}")
         file(GLOB files ${ONE_DIR}/*.so)
@@ -58,6 +58,22 @@ foreach(X ${OPENCV2_CUSTOM_PATH})
         message(STATUS "opencv include_directories path=${SECOND_DIR}")
     endif()
 endforeach()
+
+
+file(GLOB_RECURSE OPENCV2_CUSTOM_PATH "${ALL_BUILD_DIR}/dnn.hpp")
+
+foreach(X ${OPENCV2_CUSTOM_PATH})
+    if("${X}" MATCHES "opencv2")
+        get_filename_component(ONE_DIR "${X}" DIRECTORY)
+        message(STATUS "opencv path=${ONE_DIR}")
+        get_filename_component(SECOND_DIR "${ONE_DIR}" DIRECTORY)
+        include_directories(${ONE_DIR})
+        message(STATUS "opencv include_directories path=${ONE_DIR}")
+        include_directories(${SECOND_DIR})
+        message(STATUS "opencv include_directories path=${SECOND_DIR}")
+    endif()
+endforeach()
+
 
 file(GLOB_RECURSE highgui_CUSTOM_PATH "${ALL_BUILD_DIR}/highgui.hpp")
 
